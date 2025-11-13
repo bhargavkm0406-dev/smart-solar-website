@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Smart Solar Scheduler</title>
+
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial; margin: 18px; color:#111; }
+    h1 { font-size: 36px; margin: 4px 0 12px; }
+    .container { display:flex; gap:24px; align-items:flex-start; }
+    .card { background:#fff; border-radius:10px; box-shadow: 0 6px 18px rgba(0,0,0,0.06); padding:18px; }
+    .left { min-width:320px; max-width:360px; }
+    .right { flex:1; }
+    #info { line-height:1.5; font-size:1.05rem; }
+    .btn { background:#f0f0f0; border:1px solid #ddd; padding:8px 12px; border-radius:6px; cursor:pointer; margin-right:8px }
+    .btn:hover { background:#e9e9e9; }
+    small { color:#666; display:block; margin-top:8px; }
+    canvas { width:100% !important; height:420px !important; }
+    .legend { font-size:0.9rem; color:#666; margin-bottom:8px; }
+  </style>
+</head>
+<body>
+  <h1>Smart Solar Scheduler</h1>
+  <p style="margin-top:0; color:#444">Website dashboard showing live LDR, predicted sunlight hours, recommended window, and weather.</p>
+
+  <div class="container">
+    <div class="card left">
+      <div id="info">
+        Device: <span id="device">--</span><br>
+        LDR: <span id="ldr">--</span><br>
+        Predicted sunlight hours: <span id="predicted">--</span><br>
+        Recommended window: <span id="window">--</span><br>
+        Reason: <span id="reason">--</span><br>
+        Temperature: <span id="temp">--</span> °C<br>
+       Cloud cover: <span id="clouds">--</span> % <span id="weatherIcon" style="font-size:1.1rem;margin-left:6px">‍</span><br>
+
+        <small id="last">Last reading: --</small>
+      </div>
+
+      <div style="margin-top:12px;">
+        <button class="btn" onclick="startSim()">Start quick sim (60 points)</button>
+        <button class="btn" onclick="clearData()">Clear DB</button>
+      </div>
+
+      <div style="margin-top:14px; font-size:0.9rem; color:#666">
+        Weather integration: <span id="weatherStatus">Active</span> (if API key set) <br>
+        API endpoints: <code>/api/sensor</code> <code>/api/latest</code> <code>/api/weather</code>
+      </div>
+    </div>
+
+    <div class="card right">
+      <div class="legend">LDR</div>
+      <canvas id="ldrChart"></canvas>
+    </div>
+  </div>
+
+  <script>
+  // ---------------------------
+  // Chart setup
+  // ---------------------------
+  const ctx = document.getElementById('ldrChart').getContext('2d');
+  const chartData = {
+    labels: [],
+    datasets: [{
+      label: 'LDR',
+      data: [],
+      fill: false,
+      borderWidth: 2,
+      tension: 0.3,
+      pointRadius: 3,
+      borderColor: '#3ea6ff',
+      backgroundColor: '#3ea6ff'
+    }]
+  };
+  const ldrChart = new Chart(ctx, {
+    type: 'line',
+    data: chartData,
+    options: {
+      scales: {
+        x: { ticks: { autoSkip: true, maxRotation: 0 }, grid: { display: false } },
+        y: { suggestedMin: 0, suggestedMax: 1023 }
+      },
+      plugins: { legend: { display: false } }
+    }
+  });
+
+  // ---------------------------
+  // Fetch latest data & update UI
+  // ---------------------------
+  async function fetchLatest() {
+    try {
+      const res = await fetch('/api/latest');
+      const j = await res.json();
+      if (j.status === 'no-data') {
+        // keep placeholders
+        document.getElementById('device').innerText = '--';
+        return;
+      }
+      // update left card
+      document.getElementById('device').innerText = j.deviceId || 'sim';
+      document.getElementById('ldr').innerText = (j.ldr !== undefined) ? j.ldr : '--';
+      document.getElementById('predicted').innerText = (j.predicted_sun_hours !== undefined) ? j.predicted_sun_hours : '--';
+      const w = (j.recommended_window && j.recommended_window.start) ? (j.recommended_window.start + ' - ' + j.recommended_window.end) : (j.recommended_window || '--');
+      document.getElementById('window').innerText = w;
+      document.getElementById('reason').innerText = j.reason || '--';
+      if (j.time_iso) document.getElementById('last').innerText = 'Last reading: ' + j.time_iso;
+
+      // update chart (append)
+      const nowLabel = (new Date()).toLocaleTimeString();
+      addPoint(nowLabel, j.ldr || 0);
+
+    } catch (err) {
+      console.error('fetchLatest error', err);
+    }
+  }
+
+  function addPoint(label, value) {
+    const maxPoints = 80;
+    chartData.labels.push(label);
+    chartData.datasets[0].data.push(value);
+    if (chartData.labels.length > maxPoints) {
+      chartData.labels.shift();
+      chartData.datasets[0].data.shift();
+    }
+    ldrChart.update();
+  }
+
+  // Polling
+  fetchLatest();
+  setInterval(fetchLatest, 2000);
+
+  // ---------------------------
+  // Weather fetch & UI
+  // ---------------------------
+  async function updateWeather() {
+    try {
+      const res = await fetch('/api/weather');
+      const j = await res.json();
+      if (j && j.current) {
+  const t = j.current.temp;
+  const c = j.current.clouds;
+  document.getElementById('temp').innerText = (t === null || t === undefined) ? '--' : Number(t).toFixed(1);
+  document.getElementById('clouds').innerText = (c === null || c === undefined) ? '--' : c;
+  document.getElementById('weatherStatus').innerText = 'Active';
+
+  // 🌤 choose emoji icon based on cloud% (and later, precipitation)
+  const iconEl = document.getElementById('weatherIcon');
+  let icon = '☀️'; // default sunny
+  if (c >= 80) icon = '☁️';        // cloudy
+  else if (c >= 40) icon = '⛅';    // partly cloudy
+  else icon = '☀️';                // sunny
+  iconEl.textContent = icon;
+} else {
+  document.getElementById('weatherStatus').innerText = 'Not active';
+  document.getElementById('temp').innerText = '--';
+  document.getElementById('clouds').innerText = '--';
+  document.getElementById('weatherIcon').textContent = '';
+}
+
+    } catch (err) {
+      console.error('updateWeather error', err);
+      document.getElementById('weatherStatus').innerText = 'Error';
+    }
+  }
+  // initial + refresh every 5 minutes
+  updateWeather();
+  setInterval(updateWeather, 5 * 60 * 1000);
+
+  // ---------------------------
+  // Simulator & DB controls
+  // ---------------------------
+  async function startSim() {
+    try {
+      const payload = { pattern: 'sine', count: 60, delay: 0 };
+      const r = await fetch('/api/simulate', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+      const j = await r.json();
+      console.log('simulate ->', j);
+    } catch (err) {
+      console.error('simulate error', err);
+    }
+  }
+
+  async function clearData() {
+    if (!confirm('Clear database readings?')) return;
+    try {
+      // simple endpoint missing — use /api/simulate batch clear by sending nothing is not defined.
+      // We'll call an ad-hoc endpoint if available; otherwise delete via an API you implemented.
+      // For now try calling a server-side endpoint /api/clear (if you implement it). Fallback: ask user to delete solar.db file.
+      alert('If Clear DB is not implemented server-side, close server and delete solar.db file in project folder to reset.');
+      // Optionally, if server has /api/clear - uncomment:
+      // const r = await fetch('/api/clear', { method: 'POST' }); console.log(await r.text());
+    } catch (err) {
+      console.error('clear error', err);
+    }
+  }
+
+  </script>
+</body>
+</html>
