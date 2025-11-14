@@ -9,7 +9,7 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial; margin: 18px; color:#111; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial; margin: 18px; color:#111; background: #fafafa; }
     h1 { font-size: 36px; margin: 4px 0 12px; }
     .container { display:flex; gap:24px; align-items:flex-start; }
     .card { background:#fff; border-radius:10px; box-shadow: 0 6px 18px rgba(0,0,0,0.06); padding:18px; }
@@ -21,6 +21,9 @@
     small { color:#666; display:block; margin-top:8px; }
     canvas { width:100% !important; height:420px !important; }
     .legend { font-size:0.9rem; color:#666; margin-bottom:8px; }
+    ul#forecastList { margin:6px 0 0 18px; color:#222; }
+    ul#forecastList li { margin:6px 0; }
+    code { background:#f7f7f7; padding:2px 6px; border-radius:4px; }
   </style>
 </head>
 <body>
@@ -36,7 +39,14 @@
         Recommended window: <span id="window">--</span><br>
         Reason: <span id="reason">--</span><br>
         Temperature: <span id="temp">--</span> °C<br>
-       Cloud cover: <span id="clouds">--</span> % <span id="weatherIcon" style="font-size:1.1rem;margin-left:6px">‍</span><br>
+        Cloud cover: <span id="clouds">--</span> % <span id="weatherIcon" style="font-size:1.1rem;margin-left:6px"></span><br>
+        Location: <span id="loc">12.9075876, 77.5661527</span><br>
+
+        <br>
+        <strong>Next 5-Day Forecast:</strong>
+        <ul id="forecastList">
+          <li>Loading...</li>
+        </ul>
 
         <small id="last">Last reading: --</small>
       </div>
@@ -48,7 +58,7 @@
 
       <div style="margin-top:14px; font-size:0.9rem; color:#666">
         Weather integration: <span id="weatherStatus">Active</span> (if API key set) <br>
-        API endpoints: <code>/api/sensor</code> <code>/api/latest</code> <code>/api/weather</code>
+        API endpoints: <code>/api/sensor</code> <code>/api/latest</code> <code>/api/weather</code> <code>/api/forecast</code>
       </div>
     </div>
 
@@ -58,49 +68,37 @@
     </div>
   </div>
 
+  <!-- ============ All JS in one block ============ -->
   <script>
-  // ---------------------------
-  // Chart setup
-  // ---------------------------
-  const ctx = document.getElementById('ldrChart').getContext('2d');
-  const chartData = {
-    labels: [],
-    datasets: [{
-      label: 'LDR',
-      data: [],
-      fill: false,
-      borderWidth: 2,
-      tension: 0.3,
-      pointRadius: 3,
-      borderColor: '#3ea6ff',
-      backgroundColor: '#3ea6ff'
-    }]
-  };
-  const ldrChart = new Chart(ctx, {
-    type: 'line',
-    data: chartData,
-    options: {
-      scales: {
-        x: { ticks: { autoSkip: true, maxRotation: 0 }, grid: { display: false } },
-        y: { suggestedMin: 0, suggestedMax: 1023 }
-      },
-      plugins: { legend: { display: false } }
-    }
-  });
+  /* ============================
+     Smart Solar – client script
+     One script only — paste the whole file as-is
+     ============================ */
 
-  // ---------------------------
-  // Fetch latest data & update UI
-  // ---------------------------
+  /* Chart setup */
+  const ctx = document.getElementById('ldrChart').getContext('2d');
+  const chartData = { labels: [], datasets: [{ label:'LDR', data:[], fill:false, borderWidth:2, tension:0.3, pointRadius:3, borderColor:'#3ea6ff', backgroundColor:'#3ea6ff' }] };
+  const ldrChart = new Chart(ctx, { type:'line', data:chartData, options:{ scales:{ x:{ ticks:{ autoSkip:true, maxRotation:0 }, grid:{ display:false } }, y:{ suggestedMin:0, suggestedMax:1023 } }, plugins:{ legend:{ display:false } } } });
+
+  function addPoint(label, value) {
+    const maxPoints = 80;
+    chartData.labels.push(label);
+    chartData.datasets[0].data.push(value);
+    if (chartData.labels.length > maxPoints) {
+      chartData.labels.shift(); chartData.datasets[0].data.shift();
+    }
+    ldrChart.update();
+  }
+
+  /* Fetch latest reading and update UI */
   async function fetchLatest() {
     try {
       const res = await fetch('/api/latest');
       const j = await res.json();
       if (j.status === 'no-data') {
-        // keep placeholders
         document.getElementById('device').innerText = '--';
         return;
       }
-      // update left card
       document.getElementById('device').innerText = j.deviceId || 'sim';
       document.getElementById('ldr').innerText = (j.ldr !== undefined) ? j.ldr : '--';
       document.getElementById('predicted').innerText = (j.predicted_sun_hours !== undefined) ? j.predicted_sun_hours : '--';
@@ -108,96 +106,102 @@
       document.getElementById('window').innerText = w;
       document.getElementById('reason').innerText = j.reason || '--';
       if (j.time_iso) document.getElementById('last').innerText = 'Last reading: ' + j.time_iso;
-
-      // update chart (append)
       const nowLabel = (new Date()).toLocaleTimeString();
       addPoint(nowLabel, j.ldr || 0);
-
     } catch (err) {
       console.error('fetchLatest error', err);
     }
   }
 
-  function addPoint(label, value) {
-    const maxPoints = 80;
-    chartData.labels.push(label);
-    chartData.datasets[0].data.push(value);
-    if (chartData.labels.length > maxPoints) {
-      chartData.labels.shift();
-      chartData.datasets[0].data.shift();
-    }
-    ldrChart.update();
-  }
-
-  // Polling
-  fetchLatest();
-  setInterval(fetchLatest, 2000);
-
-  // ---------------------------
-  // Weather fetch & UI
-  // ---------------------------
+  /* Weather UI updater */
   async function updateWeather() {
     try {
       const res = await fetch('/api/weather');
       const j = await res.json();
+
+      if (j && j.status === 'no-weather') {
+        document.getElementById('weatherStatus').innerText = 'Not active';
+        document.getElementById('temp').innerText = '--';
+        document.getElementById('clouds').innerText = '--';
+        document.getElementById('weatherIcon').textContent = '';
+        return;
+      }
+
       if (j && j.current) {
-  const t = j.current.temp;
-  const c = j.current.clouds;
-  document.getElementById('temp').innerText = (t === null || t === undefined) ? '--' : Number(t).toFixed(1);
-  document.getElementById('clouds').innerText = (c === null || c === undefined) ? '--' : c;
-  document.getElementById('weatherStatus').innerText = 'Active';
-
-  // 🌤 choose emoji icon based on cloud% (and later, precipitation)
-  const iconEl = document.getElementById('weatherIcon');
-  let icon = '☀️'; // default sunny
-  if (c >= 80) icon = '☁️';        // cloudy
-  else if (c >= 40) icon = '⛅';    // partly cloudy
-  else icon = '☀️';                // sunny
-  iconEl.textContent = icon;
-} else {
-  document.getElementById('weatherStatus').innerText = 'Not active';
-  document.getElementById('temp').innerText = '--';
-  document.getElementById('clouds').innerText = '--';
-  document.getElementById('weatherIcon').textContent = '';
-}
-
+        const t = j.current.temp;
+        const c = j.current.clouds;
+        document.getElementById('temp').innerText = (t === null || t === undefined) ? '--' : Number(t).toFixed(1);
+        document.getElementById('clouds').innerText = (c === null || c === undefined) ? '--' : c;
+        document.getElementById('weatherStatus').innerText = 'Active';
+        const iconEl = document.getElementById('weatherIcon');
+        let icon = '☀️';
+        if (c >= 80) icon = '☁️'; else if (c >= 40) icon = '⛅';
+        iconEl.textContent = icon;
+      } else {
+        document.getElementById('weatherStatus').innerText = 'Not active';
+        document.getElementById('temp').innerText = '--';
+        document.getElementById('clouds').innerText = '--';
+        document.getElementById('weatherIcon').textContent = '';
+      }
     } catch (err) {
       console.error('updateWeather error', err);
       document.getElementById('weatherStatus').innerText = 'Error';
     }
   }
-  // initial + refresh every 5 minutes
-  updateWeather();
-  setInterval(updateWeather, 5 * 60 * 1000);
 
-  // ---------------------------
-  // Simulator & DB controls
-  // ---------------------------
+  /* Multi-day forecast UI (calls /api/forecast?days=N) */
+  async function updateMultiDayForecast(days = 5) {
+    try {
+      const res = await fetch('/api/forecast?days=' + days);
+      const j = await res.json();
+      const list = document.getElementById("forecastList");
+      if (!list) return;
+      list.innerHTML = "";
+      if (j && j.status === 'ok' && Array.isArray(j.days) && j.days.length) {
+        j.days.forEach(d => {
+          const li = document.createElement("li");
+          const date = d.date || '';
+          const hours = (d.predicted_sun_hours === undefined) ? '--' : Number(d.predicted_sun_hours).toFixed(2);
+          const win = (d.recommended_window && d.recommended_window.start) ? `${d.recommended_window.start}–${d.recommended_window.end}` : '--';
+          const suggest = d.suggestion || '';
+          li.textContent = `${date}: ${hours} h — ${win} — ${suggest}`;
+          list.appendChild(li);
+        });
+      } else if (j && j.status === 'no-weather') {
+        list.innerHTML = "<li>Weather key missing or invalid — forecast unavailable</li>";
+      } else {
+        list.innerHTML = "<li>No forecast available</li>";
+      }
+    } catch (err) {
+      console.error('Forecast error:', err);
+      const list = document.getElementById("forecastList");
+      if (list) list.innerHTML = "<li>Error fetching forecast</li>";
+    }
+  }
+
+  /* Simulator & Clear DB helpers */
   async function startSim() {
     try {
       const payload = { pattern: 'sine', count: 60, delay: 0 };
-      const r = await fetch('/api/simulate', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+      const r = await fetch('/api/simulate', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
       const j = await r.json();
-      console.log('simulate ->', j);
-    } catch (err) {
-      console.error('simulate error', err);
-    }
+      console.log('simulate ->', JSON.stringify(j, null, 2));
+    } catch (err) { console.error('simulate error', err); }
   }
 
   async function clearData() {
     if (!confirm('Clear database readings?')) return;
-    try {
-      // simple endpoint missing — use /api/simulate batch clear by sending nothing is not defined.
-      // We'll call an ad-hoc endpoint if available; otherwise delete via an API you implemented.
-      // For now try calling a server-side endpoint /api/clear (if you implement it). Fallback: ask user to delete solar.db file.
-      alert('If Clear DB is not implemented server-side, close server and delete solar.db file in project folder to reset.');
-      // Optionally, if server has /api/clear - uncomment:
-      // const r = await fetch('/api/clear', { method: 'POST' }); console.log(await r.text());
-    } catch (err) {
-      console.error('clear error', err);
-    }
+    alert('If Clear DB is not implemented server-side, stop the server and delete the file "solar.db" in the project folder to reset the data.');
   }
 
+  /* Start polling / initialize */
+  fetchLatest();
+  setInterval(fetchLatest, 2000);
+  updateWeather();
+  setInterval(updateWeather, 5 * 60 * 1000);
+  updateMultiDayForecast(5);
+  setInterval(() => updateMultiDayForecast(5), 30 * 60 * 1000);
   </script>
+  <!-- ============ end JS ============ -->
 </body>
 </html>

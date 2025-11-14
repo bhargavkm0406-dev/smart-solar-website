@@ -24,6 +24,9 @@ WEATHER_CACHE_TTL = 10 * 60  # 10 minutes cache
 app = Flask(__name__, instance_path=os.path.join(os.getcwd(), 'instance'))
 CORS(app)
 
+@app.route('/favicon.ico')
+def favicon_noop():
+    return ('', 204)
 # ------------------------------------------------------------
 # DATABASE SETUP
 # ------------------------------------------------------------
@@ -78,6 +81,134 @@ def fetch_weather():
     except Exception as e:
         print("Weather fetch failed:", e)
         return None
+    
+
+  
+    # ---------------------------
+# FREE 5-day forecast (3-hour) using /data/2.5/forecast
+# ---------------------------
+_forecast_cache = {"ts": 0, "data": None}
+FORECAST_TTL = 10 * 60  # cache 10 minutes
+
+def fetch_5day_forecast():
+    """Fetch 5-day / 3-hour forecast (free endpoint) and return parsed JSON or None."""
+    if not OWM_KEY:
+        print("No OpenWeather API key for forecast.")
+        return None
+    now = time.time()
+    if _forecast_cache["data"] and (now - _forecast_cache["ts"] < FORECAST_TTL):
+        return _forecast_cache["data"]
+    try:
+        url = (f"https://api.openweathermap.org/data/2.5/forecast"
+               f"?lat={LOCATION_LAT}&lon={LOCATION_LON}&appid={OWM_KEY}&units=metric")
+        r = requests.get(url, timeout=10)
+        r.raise_for_status()
+        data = r.json()
+        _forecast_cache["data"] = data
+        _forecast_cache["ts"] = now
+        print("5-day forecast updated")
+        return data
+    except Exception as e:
+        print("5-day forecast fetch failed:", e)
+        return None
+
+
+from datetime import datetime, timedelta
+
+def predict_from_3hr_forecast(forecast_json, days=5):
+    """
+    Convert 3-hour forecast data into per-day predicted sunlight hours and schedule.
+    Returns list of day dicts.
+    """
+    if not forecast_json or "list" not in forecast_json:
+        return []
+
+    tz_offset = forecast_json.get("city", {}).get("timezone", 0)  # seconds
+    items = forecast_json["list"]
+
+    # bucket by local date string
+    days_map = {}
+    for it in items:
+        dt = int(it.get("dt", 0))
+        local_ts = dt + int(tz_offset)
+        dt_local = datetime.utcfromtimestamp(local_ts)  # local time as naive dt
+        date_str = dt_local.date().isoformat()
+        hour = dt_local.hour
+        clouds = it.get("clouds", {}).get("all", 0)
+        pop = it.get("pop", 0.0)
+        # record only daytime slots roughly between 06..18 local hour for sunlight estimate
+        is_day = (6 <= hour <= 18)
+        days_map.setdefault(date_str, []).append({
+            "hour": hour, "is_day": is_day, "clouds": clouds, "pop": pop
+        })
+
+    # build predictions for the next N days in ascending order
+    dates = sorted(days_map.keys())[:days]
+    out = []
+    for date_str in dates:
+        slots = days_map.get(date_str, [])
+        if not slots:
+            out.append({
+                "date": date_str,
+                "predicted_sun_hours": 0.0,
+                "clouds": 0,
+                "pop": 0,
+                "recommended_window": {"start":"--","end":"--"},
+                "suggestion": "No forecast data"
+            })
+            continue
+
+        # compute number of daytime 3-hr slots and average clouds/pop across daytime slots
+        day_slots = [s for s in slots if s["is_day"]]
+        if not day_slots:
+            # fallback - use all slots
+            day_slots = slots
+
+        daylight_h = len(day_slots) * 3.0  # each slot represents 3 hours
+        avg_cloud = sum(s["clouds"] for s in day_slots) / max(1, len(day_slots))
+        avg_pop = sum(s["pop"] for s in day_slots) / max(1, len(day_slots))
+
+        # predicted usable sunlight hours = daylight * (1 - cloud%) * (1 - pop)
+        predicted_hours = round(daylight_h * max(0.0, (1.0 - avg_cloud/100.0)) * max(0.0, (1.0 - avg_pop)), 2)
+
+        # recommended window (simple thresholds)
+        if predicted_hours >= 4.0:
+            window = {"start":"11:30","end":"15:00"}
+            suggestion = "Heavy loads OK — run washer, EV charging, dishwasher, water heater."
+        elif predicted_hours >= 1.5:
+            window = {"start":"09:00","end":"11:30"}
+            suggestion = "Moderate sunlight — run medium loads (iron, short heater runs)."
+        else:
+            window = {"start":"18:00","end":"21:00"}
+            suggestion = "Low sunlight — avoid heavy loads; use grid or run light loads only."
+
+        out.append({
+            "date": date_str,
+            "predicted_sun_hours": predicted_hours,
+            "clouds": round(avg_cloud, 1),
+            "pop": round(avg_pop, 2),
+            "recommended_window": window,
+            "suggestion": suggestion
+        })
+
+    return out
+
+
+@app.route('/api/forecast', methods=['GET'])
+def api_forecast():
+    """Return N-day schedule prediction based on free 3-hr forecast endpoint."""
+    days = int(request.args.get('days', 5))
+    fjson = fetch_5day_forecast()
+    if not fjson:
+        return jsonify({"status":"no-weather", "note":"Invalid or missing API key for forecast"}), 200
+
+    days_out = predict_from_3hr_forecast(fjson, days=days)
+    return jsonify({"status":"ok", "days": days_out})
+    
+
+
+
+
 
 # ------------------------------------------------------------
 # SENSOR & DATABASE LOGIC
