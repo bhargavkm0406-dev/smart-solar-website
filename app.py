@@ -1,9 +1,10 @@
-# app.py — Smart Solar Scheduler (final version with working weather API)
+# app.py — Claude AI-Powered Smart Solar Scheduler (Exact Predictions)
 import os
 import time
 import sqlite3
 import threading
-from datetime import datetime
+import json
+from datetime import datetime, timedelta
 from flask import Flask, request, jsonify, render_template, send_from_directory
 from flask_cors import CORS
 import requests
@@ -14,9 +15,10 @@ import requests
 DB = 'solar.db'
 PORT = int(os.getenv("PORT", 5000))
 OWM_KEY = os.getenv("OPENWEATHER_API_KEY")
+ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
 LOCATION_LAT = os.getenv("LAT", "13.05565")
 LOCATION_LON = os.getenv("LON", "77.50561")
-WEATHER_CACHE_TTL = 10 * 60  # 10 minutes cache
+WEATHER_CACHE_TTL = 10 * 60
 
 # ------------------------------------------------------------
 # FLASK APP INITIALIZATION
@@ -27,6 +29,7 @@ CORS(app)
 @app.route('/favicon.ico')
 def favicon_noop():
     return ('', 204)
+
 # ------------------------------------------------------------
 # DATABASE SETUP
 # ------------------------------------------------------------
@@ -41,26 +44,287 @@ def init_db():
             ldr INTEGER
         )
     ''')
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS ai_predictions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            ts INTEGER,
+            prediction_data TEXT,
+            actual_data TEXT
+        )
+    ''')
     conn.commit()
     conn.close()
 
 init_db()
 
 # ------------------------------------------------------------
-# WEATHER FETCH (Simple /weather endpoint)
+# CLAUDE AI PREDICTION ENGINE
+# ------------------------------------------------------------
+class ClaudeAIPredictionEngine:
+    def __init__(self, api_key):
+        self.api_key = api_key
+        self.enabled = bool(api_key)
+        self.cache = {"ts": 0, "data": None, "key": None}
+        self.cache_ttl = 300  # 5 minutes
+    
+    def predict_solar_output(self, readings, weather_data, forecast_data):
+        """Use Claude AI to analyze data and make exact predictions"""
+        if not self.enabled:
+            return self._fallback_prediction(readings, weather_data)
+        
+        # Create cache key
+        cache_key = f"{len(readings)}_{weather_data.get('current', {}).get('clouds', 0)}"
+        now = time.time()
+        
+        if (self.cache["data"] and 
+            self.cache["key"] == cache_key and 
+            (now - self.cache["ts"]) < self.cache_ttl):
+            return self.cache["data"]
+        
+        # Prepare data for Claude
+        recent_readings = readings[-50:] if len(readings) > 50 else readings
+        
+        # Calculate statistics
+        ldr_values = [r['ldr'] for r in recent_readings]
+        if not ldr_values:
+            return self._fallback_prediction(readings, weather_data)
+        
+        avg_ldr = sum(ldr_values) / len(ldr_values)
+        max_ldr = max(ldr_values)
+        min_ldr = min(ldr_values)
+        
+        # Get current time info
+        latest_ts = recent_readings[-1]['timestamp'] if recent_readings else int(time.time())
+        dt = datetime.fromtimestamp(latest_ts)
+        
+        # Build prompt for Claude
+        prompt = self._build_analysis_prompt(
+            recent_readings, weather_data, forecast_data, 
+            avg_ldr, max_ldr, min_ldr, dt
+        )
+        
+        try:
+            # Call Claude API
+            response = requests.post(
+                "https://api.anthropic.com/v1/messages",
+                headers={
+                    "Content-Type": "application/json",
+                    "x-api-key": self.api_key,
+                    "anthropic-version": "2023-06-01"
+                },
+                json={
+                    "model": "claude-sonnet-4-20250514",
+                    "max_tokens": 2000,
+                    "temperature": 0,
+                    "messages": [{"role": "user", "content": prompt}]
+                },
+                timeout=30
+            )
+            
+            if response.status_code == 200:
+                data = response.json()
+                ai_response = data['content'][0]['text']
+                
+                # Parse Claude's response
+                prediction = self._parse_ai_response(ai_response)
+                
+                # Cache the result
+                self.cache = {
+                    "ts": now,
+                    "data": prediction,
+                    "key": cache_key
+                }
+                
+                # Store prediction in DB
+                self._store_prediction(prediction, ai_response)
+                
+                return prediction
+            else:
+                print(f"Claude API error: {response.status_code}")
+                return self._fallback_prediction(readings, weather_data)
+                
+        except Exception as e:
+            print(f"Claude AI error: {e}")
+            return self._fallback_prediction(readings, weather_data)
+    
+    def _build_analysis_prompt(self, readings, weather, forecast, avg_ldr, max_ldr, min_ldr, dt):
+        """Build comprehensive prompt for Claude AI"""
+        
+        # Format recent readings
+        readings_summary = []
+        for i, r in enumerate(readings[-10:]):
+            ts = datetime.fromtimestamp(r['timestamp'])
+            readings_summary.append(f"  {ts.strftime('%H:%M:%S')} - LDR: {r['ldr']}/1023")
+        
+        weather_info = "Not available"
+        if weather and 'current' in weather:
+            weather_info = f"Temperature: {weather['current'].get('temp', 'N/A')}°C, Clouds: {weather['current'].get('clouds', 'N/A')}%"
+        
+        forecast_summary = "Not available"
+        if forecast and isinstance(forecast, list) and len(forecast) > 0:
+            forecast_summary = f"Next day: {forecast[0].get('predicted_sun_hours', 0)} hours, Clouds: {forecast[0].get('clouds', 0)}%"
+        
+        prompt = f"""You are an expert solar energy analyst. Analyze this solar panel system data and provide EXACT predictions.
+
+CURRENT SYSTEM DATA:
+==================
+Current Time: {dt.strftime('%Y-%m-%d %H:%M:%S')}
+Hour of Day: {dt.hour}
+Day of Week: {dt.strftime('%A')}
+
+SENSOR READINGS (LDR values 0-1023, higher = more sunlight):
+Latest 10 readings:
+{chr(10).join(readings_summary)}
+
+Statistics:
+- Average LDR: {avg_ldr:.1f}/1023 ({(avg_ldr/1023*100):.1f}%)
+- Maximum LDR: {max_ldr}/1023
+- Minimum LDR: {min_ldr}/1023
+- Total readings analyzed: {len(readings)}
+
+CURRENT WEATHER:
+{weather_info}
+
+FORECAST:
+{forecast_summary}
+
+ANALYSIS REQUIRED:
+==================
+Based on the EXACT data above, provide your analysis in this JSON format:
+
+{{
+  "predicted_sun_hours": <number between 0-8>,
+  "confidence": <percentage 0-100>,
+  "reasoning": "<detailed explanation of your prediction>",
+  "recommended_window": {{
+    "start": "HH:MM",
+    "end": "HH:MM"
+  }},
+  "load_recommendations": {{
+    "heavy_loads": "<when to run: washer, EV, heater>",
+    "medium_loads": "<when to run: iron, microwave>",
+    "light_loads": "<when to run: lights, fans>"
+  }},
+  "energy_strategy": "<grid vs solar usage strategy>",
+  "risk_factors": ["<list any factors that could affect prediction>"]
+}}
+
+IMPORTANT:
+- Base predictions on ACTUAL sensor trends and patterns
+- Consider time of day and weather conditions
+- Be precise with time windows
+- Explain your reasoning clearly
+- Account for cloud coverage and weather changes
+- Provide actionable recommendations
+
+Respond ONLY with valid JSON, no additional text."""
+
+        return prompt
+    
+    def _parse_ai_response(self, ai_response):
+        """Parse Claude's JSON response into structured prediction"""
+        try:
+            # Extract JSON from response (handle markdown code blocks)
+            json_str = ai_response.strip()
+            if json_str.startswith('```'):
+                lines = json_str.split('\n')
+                json_str = '\n'.join(lines[1:-1]) if len(lines) > 2 else json_str
+                json_str = json_str.replace('```json', '').replace('```', '').strip()
+            
+            prediction = json.loads(json_str)
+            
+            # Validate and structure response
+            return {
+                "predicted_sun_hours": float(prediction.get("predicted_sun_hours", 0)),
+                "confidence": int(prediction.get("confidence", 50)),
+                "reasoning": prediction.get("reasoning", "AI analysis completed"),
+                "recommended_window": prediction.get("recommended_window", {"start": "11:00", "end": "15:00"}),
+                "load_recommendations": prediction.get("load_recommendations", {}),
+                "energy_strategy": prediction.get("energy_strategy", ""),
+                "risk_factors": prediction.get("risk_factors", []),
+                "ai_powered": True,
+                "source": "claude-ai"
+            }
+        except Exception as e:
+            print(f"Parse error: {e}")
+            print(f"AI Response: {ai_response[:200]}")
+            return {
+                "predicted_sun_hours": 0,
+                "confidence": 0,
+                "reasoning": "Failed to parse AI response",
+                "recommended_window": {"start": "--", "end": "--"},
+                "ai_powered": False,
+                "error": str(e)
+            }
+    
+    def _fallback_prediction(self, readings, weather_data):
+        """Simple fallback when AI is unavailable"""
+        if not readings:
+            return {
+                "predicted_sun_hours": 0,
+                "confidence": 0,
+                "reasoning": "No sensor data available",
+                "recommended_window": {"start": "--", "end": "--"},
+                "ai_powered": False
+            }
+        
+        recent = readings[-20:] if len(readings) > 20 else readings
+        avg_ldr = sum(r['ldr'] for r in recent) / len(recent)
+        normalized = avg_ldr / 1023.0
+        predicted_hours = round(normalized * 6.0, 2)
+        
+        if weather_data and 'current' in weather_data:
+            clouds = weather_data['current'].get('clouds', 0)
+            predicted_hours = round(predicted_hours * max(0.1, (1.0 - clouds / 150.0)), 2)
+        
+        if predicted_hours > 3.5:
+            window = {"start": "11:30", "end": "15:00"}
+            reason = "High sunlight detected"
+        elif predicted_hours > 1.5:
+            window = {"start": "09:00", "end": "11:30"}
+            reason = "Moderate sunlight detected"
+        else:
+            window = {"start": "18:00", "end": "21:00"}
+            reason = "Low sunlight detected"
+        
+        return {
+            "predicted_sun_hours": predicted_hours,
+            "confidence": 50,
+            "reasoning": reason,
+            "recommended_window": window,
+            "ai_powered": False,
+            "source": "fallback"
+        }
+    
+    def _store_prediction(self, prediction, raw_response):
+        """Store AI prediction in database for learning"""
+        try:
+            conn = sqlite3.connect(DB)
+            c = conn.cursor()
+            c.execute('''INSERT INTO ai_predictions (ts, prediction_data, actual_data) 
+                         VALUES (?, ?, ?)''',
+                      (int(time.time()), json.dumps(prediction), raw_response[:1000]))
+            conn.commit()
+            conn.close()
+        except:
+            pass
+
+# Initialize Claude AI Engine
+claude_engine = ClaudeAIPredictionEngine(ANTHROPIC_API_KEY)
+
+# ------------------------------------------------------------
+# WEATHER FUNCTIONS
 # ------------------------------------------------------------
 _weather_cache = {"ts": 0, "data": None}
 
 def fetch_weather():
-    """Fetch simple current weather info (temperature + cloud %)"""
     if not OWM_KEY:
-        print("No OpenWeather API key set.")
         return None
-
+    
     now = time.time()
     if _weather_cache["data"] and (now - _weather_cache["ts"] < WEATHER_CACHE_TTL):
         return _weather_cache["data"]
-
+    
     try:
         url = (f"https://api.openweathermap.org/data/2.5/weather"
                f"?lat={LOCATION_LAT}&lon={LOCATION_LON}&appid={OWM_KEY}&units=metric")
@@ -70,34 +334,28 @@ def fetch_weather():
         data = {
             "current": {
                 "temp": j.get("main", {}).get("temp"),
-                "clouds": j.get("clouds", {}).get("all", 0)
-            },
-            "hourly": []
+                "clouds": j.get("clouds", {}).get("all", 0),
+                "humidity": j.get("main", {}).get("humidity", 0),
+                "wind_speed": j.get("wind", {}).get("speed", 0)
+            }
         }
         _weather_cache["data"] = data
         _weather_cache["ts"] = now
-        print("Weather updated:", data)
         return data
     except Exception as e:
-        print("Weather fetch failed:", e)
+        print(f"Weather error: {e}")
         return None
-    
 
-  
-    # ---------------------------
-# FREE 5-day forecast (3-hour) using /data/2.5/forecast
-# ---------------------------
 _forecast_cache = {"ts": 0, "data": None}
-FORECAST_TTL = 10 * 60  # cache 10 minutes
 
 def fetch_5day_forecast():
-    """Fetch 5-day / 3-hour forecast (free endpoint) and return parsed JSON or None."""
     if not OWM_KEY:
-        print("No OpenWeather API key for forecast.")
         return None
+    
     now = time.time()
-    if _forecast_cache["data"] and (now - _forecast_cache["ts"] < FORECAST_TTL):
+    if _forecast_cache["data"] and (now - _forecast_cache["ts"] < 600):
         return _forecast_cache["data"]
+    
     try:
         url = (f"https://api.openweathermap.org/data/2.5/forecast"
                f"?lat={LOCATION_LAT}&lon={LOCATION_LON}&appid={OWM_KEY}&units=metric")
@@ -106,45 +364,37 @@ def fetch_5day_forecast():
         data = r.json()
         _forecast_cache["data"] = data
         _forecast_cache["ts"] = now
-        print("5-day forecast updated")
         return data
     except Exception as e:
-        print("5-day forecast fetch failed:", e)
+        print(f"Forecast error: {e}")
         return None
 
-
-from datetime import datetime, timedelta
-
 def predict_from_3hr_forecast(forecast_json, days=5):
-    """
-    Convert 3-hour forecast data into per-day predicted sunlight hours and schedule.
-    Returns list of day dicts.
-    """
+    """Convert forecast to daily predictions - enhanced for Claude"""
     if not forecast_json or "list" not in forecast_json:
         return []
-
-    tz_offset = forecast_json.get("city", {}).get("timezone", 0)  # seconds
+    
+    tz_offset = forecast_json.get("city", {}).get("timezone", 0)
     items = forecast_json["list"]
-
-    # bucket by local date string
+    
     days_map = {}
     for it in items:
         dt = int(it.get("dt", 0))
         local_ts = dt + int(tz_offset)
-        dt_local = datetime.utcfromtimestamp(local_ts)  # local time as naive dt
+        dt_local = datetime.utcfromtimestamp(local_ts)
         date_str = dt_local.date().isoformat()
         hour = dt_local.hour
         clouds = it.get("clouds", {}).get("all", 0)
         pop = it.get("pop", 0.0)
-        # record only daytime slots roughly between 06..18 local hour for sunlight estimate
+        temp = it.get("main", {}).get("temp", 0)
         is_day = (6 <= hour <= 18)
         days_map.setdefault(date_str, []).append({
-            "hour": hour, "is_day": is_day, "clouds": clouds, "pop": pop
+            "hour": hour, "is_day": is_day, "clouds": clouds, "pop": pop, "temp": temp
         })
-
-    # build predictions for the next N days in ascending order
+    
     dates = sorted(days_map.keys())[:days]
     out = []
+    
     for date_str in dates:
         slots = days_map.get(date_str, [])
         if not slots:
@@ -153,25 +403,20 @@ def predict_from_3hr_forecast(forecast_json, days=5):
                 "predicted_sun_hours": 0.0,
                 "clouds": 0,
                 "pop": 0,
+                "temp": 0,
                 "recommended_window": {"start":"--","end":"--"},
                 "suggestion": "No forecast data"
             })
             continue
-
-        # compute number of daytime 3-hr slots and average clouds/pop across daytime slots
-        day_slots = [s for s in slots if s["is_day"]]
-        if not day_slots:
-            # fallback - use all slots
-            day_slots = slots
-
-        daylight_h = len(day_slots) * 3.0  # each slot represents 3 hours
+        
+        day_slots = [s for s in slots if s["is_day"]] or slots
+        daylight_h = len(day_slots) * 3.0
         avg_cloud = sum(s["clouds"] for s in day_slots) / max(1, len(day_slots))
         avg_pop = sum(s["pop"] for s in day_slots) / max(1, len(day_slots))
-
-        # predicted usable sunlight hours = daylight * (1 - cloud%) * (1 - pop)
+        avg_temp = sum(s["temp"] for s in day_slots) / max(1, len(day_slots))
+        
         predicted_hours = round(daylight_h * max(0.0, (1.0 - avg_cloud/100.0)) * max(0.0, (1.0 - avg_pop)), 2)
-
-        # recommended window (simple thresholds)
+        
         if predicted_hours >= 4.0:
             window = {"start":"11:30","end":"15:00"}
             suggestion = "Heavy loads OK — run washer, EV charging, dishwasher, water heater."
@@ -181,37 +426,21 @@ def predict_from_3hr_forecast(forecast_json, days=5):
         else:
             window = {"start":"18:00","end":"21:00"}
             suggestion = "Low sunlight — avoid heavy loads; use grid or run light loads only."
-
+        
         out.append({
             "date": date_str,
             "predicted_sun_hours": predicted_hours,
             "clouds": round(avg_cloud, 1),
             "pop": round(avg_pop, 2),
+            "temp": round(avg_temp, 1),
             "recommended_window": window,
             "suggestion": suggestion
         })
-
+    
     return out
 
-
-@app.route('/api/forecast', methods=['GET'])
-def api_forecast():
-    """Return N-day schedule prediction based on free 3-hr forecast endpoint."""
-    days = int(request.args.get('days', 5))
-    fjson = fetch_5day_forecast()
-    if not fjson:
-        return jsonify({"status":"no-weather", "note":"Invalid or missing API key for forecast"}), 200
-
-    days_out = predict_from_3hr_forecast(fjson, days=days)
-    return jsonify({"status":"ok", "days": days_out})
-    
-
-
-
-
-
 # ------------------------------------------------------------
-# SENSOR & DATABASE LOGIC
+# DATABASE FUNCTIONS
 # ------------------------------------------------------------
 def insert_reading(deviceId, ldr, ts=None):
     if ts is None:
@@ -242,101 +471,32 @@ def get_history(limit=200):
     rows = rows[::-1]
     return [{"deviceId": r[0], "timestamp": r[1], "ldr": r[2]} for r in rows]
 
-# ---------------------------
-# Simple forecasting helpers (Holt's linear trend)
-# ---------------------------
-def holt_linear_forecast(values, n_forecast=6, alpha=0.6, beta=0.2):
-    """
-    values: list of recent numeric LDR readings (oldest -> newest)
-    returns: list of n_forecast forecasted values
-    Implements simple Holt's linear method (level + trend).
-    """
-    if not values:
-        return [0.0] * n_forecast
-    if len(values) == 1:
-        return [values[0]] * n_forecast
-
-    # initialize
-    level = values[0]
-    trend = values[1] - values[0]
-    # smoothing
-    for i in range(1, len(values)):
-        val = values[i]
-        prev_level = level
-        level = alpha * val + (1 - alpha) * (level + trend)
-        trend = beta * (level - prev_level) + (1 - beta) * trend
-
-    # forecast
-    forecasts = []
-    for k in range(1, n_forecast + 1):
-        forecasts.append(max(0.0, level + trend * k))
-    return forecasts
-
-
-def predict_future_hours_from_history(history_readings, n_hours=6, clouds_pct=None):
-    """
-    history_readings: list of dicts like returned by get_history() (ordered oldest->newest)
-    n_hours: number of hourly points to forecast (default 6)
-    clouds_pct: optional cloud percentage (0-100) to adjust forecast
-    Returns: (predicted_hours:float, forecasted_ldr:list)
-    """
-    vals = [min(1023, max(0, int(r.get("ldr", 0)))) for r in history_readings if r.get("ldr") is not None]
-    if not vals:
-        vals = [0]
-    vals = vals[-60:]  # use up to 60 recent points
-
-    # forecast next n_hours LDR values using Holt linear
-    forecast_ldr = holt_linear_forecast(vals, n_forecast=n_hours, alpha=0.6, beta=0.2)
-
-    avg_predicted_ldr = sum(forecast_ldr) / max(1, len(forecast_ldr))
-    normalized = float(avg_predicted_ldr) / 1023.0
-    predicted_hours = round(normalized * 6.0, 2)
-
-    if clouds_pct is not None:
-        predicted_hours = round(predicted_hours * max(0.0, (1.0 - clouds_pct / 150.0)), 2)
-
-    return predicted_hours, forecast_ldr
-
 # ------------------------------------------------------------
-# SOLAR RECOMMENDATION LOGIC
+# CLAUDE AI-POWERED RECOMMENDATION
 # ------------------------------------------------------------
 def compute_recommendation(latest):
-    """
-    Uses recent LDR history + simple Holt forecast + weather clouds to predict sunlight hours
-    and compute recommended window.
-    """
+    """Use Claude AI to compute exact recommendations"""
     if latest is None:
-        return {"predicted_sun_hours": 0.0, "recommended_window": {"start":"--","end":"--"}, "reason":"no-data"}
-
-    # Get recent history (oldest->newest)
-    history = get_history(limit=120)  # use up to 120 recent samples (you can tune)
-    # pass cloud% from current weather (if available)
+        return {
+            "predicted_sun_hours": 0.0,
+            "confidence": 0,
+            "recommended_window": {"start":"--","end":"--"},
+            "reason": "no-data",
+            "ai_powered": False
+        }
+    
+    # Get historical data
+    history = get_history(limit=200)
+    
+    # Get weather and forecast
     weather = fetch_weather()
-    clouds_pct = None
-    if weather and "current" in weather:
-        clouds_pct = weather["current"].get("clouds", None)
-
-    # Use the forecasting helper: predict next 6 hourly-equivalent LDR values
-    predicted_hours, predicted_ldr_series = predict_future_hours_from_history(history, n_hours=6, clouds_pct=clouds_pct)
-
-    # Build recommended window using thresholds (same style as before)
-    if predicted_hours > 3.5:
-        window = {"start":"11:30","end":"15:00"}
-        reason = "High forecasted sunlight — midday recommended."
-    elif predicted_hours > 1.5:
-        window = {"start":"09:00","end":"11:30"}
-        reason = "Moderate forecasted sunlight."
-    else:
-        window = {"start":"18:00","end":"21:00"}
-        reason = "Low sunlight — use grid or avoid heavy loads."
-
-    # You can optionally include the small forecast series in the returned dict
-    return {
-        "predicted_sun_hours": predicted_hours,
-        "recommended_window": window,
-        "reason": reason,
-        "forecast_ldr": predicted_ldr_series  # optional: small series for debugging / UI
-    }
+    forecast_data = fetch_5day_forecast()
+    forecast_parsed = predict_from_3hr_forecast(forecast_data) if forecast_data else []
+    
+    # Use Claude AI for prediction
+    prediction = claude_engine.predict_solar_output(history, weather, forecast_parsed)
+    
+    return prediction
 
 # ------------------------------------------------------------
 # FLASK ROUTES
@@ -360,18 +520,21 @@ def api_sensor():
             insert_reading(deviceId, int(ldr))
         return jsonify({"status": "ok"}), 200
     except Exception as e:
-        print("Insert error:", e)
+        print(f"Insert error: {e}")
         return jsonify({"error": "server error"}), 500
 
 @app.route('/api/latest', methods=['GET'])
 def api_latest():
+    """Get latest reading with Claude AI predictions"""
     latest = get_latest()
     if not latest:
         return jsonify({"status": "no-data"})
+    
     rec = compute_recommendation(latest)
     result = dict(latest)
     result.update(rec)
     result["time_iso"] = datetime.utcfromtimestamp(result["timestamp"]).isoformat() + "Z"
+    
     return jsonify(result)
 
 @app.route('/api/history', methods=['GET'])
@@ -384,18 +547,18 @@ def api_simulate():
     data = request.get_json(force=True)
     if not data:
         return jsonify({"error": "bad payload"}), 400
-
+    
     if "batch" in data:
         for item in data["batch"]:
             insert_reading(item.get("deviceId", "esp1"),
                            item.get("ldr", 0),
                            item.get("ts", None))
         return jsonify({"status": "ok", "inserted": len(data["batch"])})
-
+    
     pattern = data.get("pattern", "sine")
     count = int(data.get("count", 60))
     delay = float(data.get("delay", 0))
-
+    
     def run_sim():
         import math, random
         for i in range(count):
@@ -405,6 +568,7 @@ def api_simulate():
             insert_reading("sim", ldr)
             if delay > 0:
                 time.sleep(delay)
+    
     threading.Thread(target=run_sim, daemon=True).start()
     return jsonify({"status": "started", "pattern": pattern, "count": count}), 200
 
@@ -412,21 +576,43 @@ def api_simulate():
 def api_weather():
     w = fetch_weather()
     if not w:
-        return jsonify({"status": "no-weather", "note": "Invalid or missing API key"}), 200
+        return jsonify({"status": "no-weather"}), 200
     current = w.get("current", {})
     return jsonify({
-        "current": {"temp": current.get("temp"), "clouds": current.get("clouds")},
+        "current": current,
         "next6": []
     })
 
-@app.route('/favicon.ico')
-def favicon():
-    return send_from_directory(os.path.join(app.root_path, 'static'),
-                               'favicon.ico', mimetype='image/vnd.microsoft.icon')
+@app.route('/api/forecast', methods=['GET'])
+def api_forecast():
+    days = int(request.args.get('days', 5))
+    fjson = fetch_5day_forecast()
+    if not fjson:
+        return jsonify({"status":"no-weather"}), 200
+    days_out = predict_from_3hr_forecast(fjson, days=days)
+    return jsonify({"status":"ok", "days": days_out})
+
+@app.route('/api/ai-status', methods=['GET'])
+def api_ai_status():
+    """Check AI engine status"""
+    return jsonify({
+        "claude_ai_enabled": claude_engine.enabled,
+        "api_key_configured": bool(ANTHROPIC_API_KEY),
+        "cache_active": claude_engine.cache["data"] is not None,
+        "weather_api_configured": bool(OWM_KEY)
+    })
 
 # ------------------------------------------------------------
 # RUN SERVER
 # ------------------------------------------------------------
 if __name__ == '__main__':
-    print(f"Starting server on port {PORT}. Open http://localhost:{PORT} in your browser.")
+    print("=" * 60)
+    print("🤖 CLAUDE AI-POWERED SOLAR SCHEDULER")
+    print("=" * 60)
+    print(f"🧠 Claude AI: {'✅ ENABLED' if claude_engine.enabled else '❌ DISABLED (Set ANTHROPIC_API_KEY)'}")
+    print(f"🌤️  Weather API: {'✅ Connected' if OWM_KEY else '❌ Not configured'}")
+    print(f"🚀 Server: http://localhost:{PORT}")
+    print("=" * 60)
+    print("\n💡 This system uses Claude AI to analyze your solar data")
+    print("   and provide EXACT predictions based on real patterns.\n")
     app.run(host='0.0.0.0', port=PORT, debug=True)
