@@ -1,14 +1,30 @@
-*.db
-solar.db
+# Python
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
+
+# Virtual env
 venv/
 env/
-ENV/
-instance/
+.venv/
+
+# Database and logs
+*.db
+*.sqlite3
+logs/
 *.log
-.DS_Store
+
+# Model artifacts
+models/
+*.joblib
+*.pkl
+*_metadata.json
+
+# OS files
 Thumbs.db
+desktop.ini
+
+# IDE
 .vscode/
 .idea/
-remote_index.html
