@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Solar Energy Scheduler - 7 Day Forecast</title>
+    <title>AI Solar Energy Scheduler - Smart Appliance Management</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -14,7 +14,7 @@
             min-height: 100vh;
             padding: 20px;
         }
-        .container { max-width: 1600px; margin: 0 auto; }
+        .container { max-width: 1800px; margin: 0 auto; }
         header {
             background: white;
             border-radius: 20px;
@@ -53,55 +53,7 @@
         .status-label { font-size: 0.85em; color: #666; margin-bottom: 5px; }
         .status-value { font-size: 1.2em; font-weight: bold; color: #667eea; }
         
-        .location-section {
-            background: white;
-            border-radius: 20px;
-            padding: 30px;
-            margin-bottom: 30px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
-        }
-        .location-section h2 {
-            color: #667eea;
-            margin-bottom: 20px;
-            font-size: 1.8em;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        .location-input-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-            margin-bottom: 20px;
-        }
-        .input-group { display: flex; flex-direction: column; gap: 8px; }
-        .input-group label { font-weight: bold; color: #666; font-size: 0.95em; }
-        .input-group input {
-            padding: 12px 15px;
-            border: 2px solid #e5e7eb;
-            border-radius: 10px;
-            font-size: 1em;
-            transition: border-color 0.3s;
-        }
-        .input-group input:focus { outline: none; border-color: #667eea; }
-        .location-display {
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            color: white;
-            padding: 20px;
-            border-radius: 10px;
-            margin-top: 20px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            flex-wrap: wrap;
-            gap: 15px;
-        }
-        .location-info { display: flex; align-items: center; gap: 15px; }
-        .location-icon { font-size: 2.5em; }
-        .location-details h3 { font-size: 1.5em; margin-bottom: 5px; }
-        .location-coords { font-size: 0.9em; opacity: 0.9; }
-        
-        .live-status {
+        .carbon-savings {
             background: linear-gradient(135deg, #10b981, #059669);
             color: white;
             border-radius: 20px;
@@ -109,20 +61,133 @@
             margin-bottom: 30px;
             box-shadow: 0 10px 40px rgba(0,0,0,0.2);
         }
-        .live-grid {
+        .carbon-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 20px;
             margin-top: 20px;
         }
-        .live-metric { text-align: center; }
-        .live-metric-value {
-            font-size: 3em;
+        .carbon-metric { text-align: center; background: rgba(255,255,255,0.1); padding: 20px; border-radius: 15px; }
+        .carbon-value {
+            font-size: 2.5em;
             font-weight: bold;
             display: block;
             margin: 10px 0;
         }
-        .live-metric-label { font-size: 1.1em; opacity: 0.9; }
+        .carbon-label { font-size: 1em; opacity: 0.9; }
+        
+        .schedule-section {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+        .schedule-section h2 { color: #667eea; margin-bottom: 20px; font-size: 1.8em; }
+        
+        .hourly-schedule {
+            display: grid;
+            gap: 15px;
+        }
+        .hour-card {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 20px;
+            display: grid;
+            grid-template-columns: 100px 150px 1fr 150px;
+            gap: 20px;
+            align-items: center;
+            transition: all 0.3s;
+            border-left: 5px solid #e5e7eb;
+        }
+        .hour-card:hover {
+            transform: translateX(5px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        .hour-card.solar-peak {
+            background: linear-gradient(135deg, #fef3c7, #fde68a);
+            border-left-color: #f59e0b;
+        }
+        .hour-card.solar-moderate {
+            background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+            border-left-color: #3b82f6;
+        }
+        .hour-card.solar-low {
+            background: linear-gradient(135deg, #f3f4f6, #e5e7eb);
+            border-left-color: #6b7280;
+        }
+        .hour-card.current-hour {
+            border: 3px solid #667eea;
+            box-shadow: 0 0 20px rgba(102, 126, 234, 0.3);
+        }
+        .hour-time {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #667eea;
+            text-align: center;
+        }
+        .hour-solar {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+        }
+        .solar-icon { font-size: 2.5em; }
+        .solar-power {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #f59e0b;
+        }
+        .solar-percentage {
+            font-size: 0.9em;
+            color: #666;
+        }
+        .hour-recommendation {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .recommendation-title {
+            font-weight: bold;
+            color: #667eea;
+            font-size: 1.1em;
+        }
+        .appliance-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .appliance-tag {
+            background: white;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .appliance-tag.high-power { background: #fee2e2; color: #991b1b; }
+        .appliance-tag.medium-power { background: #dbeafe; color: #1e40af; }
+        .appliance-tag.low-power { background: #dcfce7; color: #166534; }
+        .energy-source {
+            text-align: center;
+            padding: 15px;
+            border-radius: 10px;
+            font-weight: bold;
+        }
+        .source-solar {
+            background: linear-gradient(135deg, #fbbf24, #f59e0b);
+            color: white;
+        }
+        .source-hybrid {
+            background: linear-gradient(135deg, #60a5fa, #3b82f6);
+            color: white;
+        }
+        .source-grid {
+            background: linear-gradient(135deg, #94a3b8, #64748b);
+            color: white;
+        }
         
         .chart-section {
             background: white;
@@ -165,66 +230,6 @@
         }
         .day-date { font-size: 1.3em; font-weight: bold; color: #667eea; }
         .day-icon { font-size: 3em; }
-        .sun-hours { text-align: center; margin: 20px 0; }
-        .sun-hours-value {
-            font-size: 3em;
-            font-weight: bold;
-            color: #f59e0b;
-            display: block;
-        }
-        .sun-hours-label { color: #666; font-size: 1em; }
-        .recommended-window {
-            background: #f8f9fa;
-            padding: 15px;
-            border-radius: 10px;
-            margin: 15px 0;
-        }
-        .window-time {
-            font-size: 1.3em;
-            font-weight: bold;
-            color: #667eea;
-            text-align: center;
-            margin: 10px 0;
-        }
-        .suggestion {
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            color: white;
-            padding: 15px;
-            border-radius: 10px;
-            margin-top: 15px;
-            font-size: 0.95em;
-            line-height: 1.5;
-        }
-        .weather-info {
-            display: flex;
-            justify-content: space-around;
-            margin-top: 15px;
-            padding-top: 15px;
-            border-top: 1px solid #e5e7eb;
-        }
-        .weather-stat { text-align: center; }
-        .weather-stat-value { font-size: 1.3em; font-weight: bold; color: #667eea; }
-        .weather-stat-label { font-size: 0.85em; color: #666; }
-        
-        .progress-bar {
-            width: 100%;
-            height: 25px;
-            background: #e5e7eb;
-            border-radius: 15px;
-            overflow: hidden;
-            margin: 10px 0;
-        }
-        .progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #10b981, #059669);
-            transition: width 0.5s ease;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-weight: bold;
-            font-size: 0.85em;
-        }
         
         .loading { text-align: center; padding: 60px; }
         .spinner {
@@ -256,8 +261,6 @@
         .btn:hover { background: #5568d3; transform: scale(1.05); }
         .btn-secondary { background: #6b7280; }
         .btn-secondary:hover { background: #4b5563; }
-        .btn-success { background: #10b981; }
-        .btn-success:hover { background: #059669; }
         .button-group { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
         
         .alert {
@@ -277,7 +280,10 @@
         @media (max-width: 768px) {
             header h1 { font-size: 1.8em; }
             .header-content { flex-direction: column; }
-            .live-grid, .forecast-grid, .location-input-grid { grid-template-columns: 1fr; }
+            .hour-card {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
         }
     </style>
 </head>
@@ -286,8 +292,8 @@
         <header>
             <div class="header-content">
                 <div>
-                    <h1><span style="font-size: 1.2em;">🌞</span> AI Solar Energy Scheduler</h1>
-                    <p style="color: #666; margin-top: 10px;">Intelligent 7-Day Solar Prediction & Optimization System</p>
+                    <h1><span style="font-size: 1.2em;">🤖</span> AI Solar Energy Scheduler</h1>
+                    <p style="color: #666; margin-top: 10px;">Claude AI-Powered 24-Hour Appliance Scheduling & Carbon Tracking</p>
                 </div>
                 <div class="status-bar">
                     <div class="status-item">
@@ -295,8 +301,8 @@
                         <span class="status-value" id="currentTime">--:--</span>
                     </div>
                     <div class="status-item">
-                        <span class="status-label">Last Update</span>
-                        <span class="status-value" id="lastUpdate">--</span>
+                        <span class="status-label">Claude AI</span>
+                        <span class="status-value" id="aiStatus">🔄 Checking...</span>
                     </div>
                     <div class="status-item">
                         <span class="status-label">API Status</span>
@@ -306,82 +312,55 @@
             </div>
         </header>
 
-        <div class="location-section">
-            <h2>📍 Location Settings</h2>
-            <p style="color: #666; margin-bottom: 20px;">Enter coordinates to get accurate solar predictions</p>
-            
-            <div class="location-input-grid">
-                <div class="input-group">
-                    <label for="latitude">Latitude</label>
-                    <input type="number" id="latitude" step="0.000001" placeholder="e.g., 13.05565" value="13.05565">
+        <div class="carbon-savings">
+            <h2 style="font-size: 2em; margin-bottom: 10px;">🌱 Carbon Emission Savings</h2>
+            <p style="opacity: 0.9; margin-bottom: 20px;">Environmental impact of solar energy usage</p>
+            <div class="carbon-grid">
+                <div class="carbon-metric">
+                    <span class="carbon-label">Today's Savings</span>
+                    <span class="carbon-value" id="todayCarbon">0.0</span>
+                    <span class="carbon-label">kg CO₂</span>
                 </div>
-                <div class="input-group">
-                    <label for="longitude">Longitude</label>
-                    <input type="number" id="longitude" step="0.000001" placeholder="e.g., 77.50561" value="77.50561">
+                <div class="carbon-metric">
+                    <span class="carbon-label">This Week</span>
+                    <span class="carbon-value" id="weekCarbon">0.0</span>
+                    <span class="carbon-label">kg CO₂</span>
                 </div>
-                <div class="input-group" style="display: flex; align-items: flex-end;">
-                    <div style="display: flex; gap: 10px; width: 100%;">
-                        <button class="btn btn-success" onclick="updateLocation()" style="flex: 1;">🔄 Update</button>
-                        <button class="btn btn-secondary" onclick="detectLocation()" style="flex: 1;">📍 Auto</button>
-                    </div>
+                <div class="carbon-metric">
+                    <span class="carbon-label">This Month</span>
+                    <span class="carbon-value" id="monthCarbon">0.0</span>
+                    <span class="carbon-label">kg CO₂</span>
                 </div>
-            </div>
-
-            <div class="location-display">
-                <div class="location-info">
-                    <div class="location-icon">🌍</div>
-                    <div class="location-details">
-                        <h3 id="locationName">Loading location...</h3>
-                        <div class="location-coords">Lat: <span id="displayLat">--</span>, Lon: <span id="displayLon">--</span></div>
-                    </div>
+                <div class="carbon-metric">
+                    <span class="carbon-label">Trees Equivalent</span>
+                    <span class="carbon-value" id="treesEquiv">0</span>
+                    <span class="carbon-label">🌳 trees/year</span>
                 </div>
             </div>
         </div>
 
-        <div class="live-status">
-            <h2 style="font-size: 2em; margin-bottom: 10px;">📊 Live Solar Status</h2>
-            <p style="opacity: 0.9; margin-bottom: 20px;">Real-time monitoring from LDR sensor</p>
-            <div class="live-grid">
-                <div class="live-metric">
-                    <span class="live-metric-label">Current LDR Reading</span>
-                    <span class="live-metric-value" id="currentLDR">--</span>
-                    <span class="live-metric-label">/ 1023</span>
-                </div>
-                <div class="live-metric">
-                    <span class="live-metric-label">Predicted Sun Hours</span>
-                    <span class="live-metric-value" id="predictedHours">--</span>
-                    <span class="live-metric-label">hours</span>
-                </div>
-                <div class="live-metric">
-                    <span class="live-metric-label">Temperature</span>
-                    <span class="live-metric-value" id="temperature">--</span>
-                    <span class="live-metric-label">°C</span>
-                </div>
-                <div class="live-metric">
-                    <span class="live-metric-label">Cloud Cover</span>
-                    <span class="live-metric-value" id="cloudCover">--</span>
-                    <span class="live-metric-label">%</span>
-                </div>
-            </div>
-            <div style="margin-top: 20px; text-align: center;">
-                <div class="recommended-window" style="background: rgba(255,255,255,0.2); color: white; backdrop-filter: blur(10px);">
-                    <strong>🎯 Recommended Window Today:</strong>
-                    <div class="window-time" style="color: white;" id="todayWindow">--:-- to --:--</div>
+        <div class="schedule-section">
+            <h2>⚡ 24-Hour Smart Appliance Schedule</h2>
+            <p style="color: #666; margin-bottom: 20px;">AI-optimized hourly recommendations based on solar availability</p>
+            <div id="hourlySchedule" class="hourly-schedule">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p style="color: #666;">Loading AI predictions...</p>
                 </div>
             </div>
         </div>
 
         <div class="chart-section">
-            <h2>📈 Today's 24-Hour Solar Intensity Prediction</h2>
-            <p style="color: #666; margin-bottom: 20px;">AI-powered hourly forecast</p>
+            <h2>📈 Solar Power vs Energy Consumption</h2>
+            <p style="color: #666; margin-bottom: 20px;">24-hour energy production and load distribution forecast</p>
             <div class="chart-container">
-                <canvas id="todayChart"></canvas>
+                <canvas id="energyChart"></canvas>
             </div>
         </div>
 
         <div class="chart-section">
             <h2>📅 7-Day Solar Forecast</h2>
-            <p style="color: #666; margin-bottom: 20px;">Long-range prediction for optimal planning</p>
+            <p style="color: #666; margin-bottom: 20px;">Claude AI-powered long-range predictions</p>
             <div id="forecastLoading" class="loading">
                 <div class="spinner"></div>
                 <p style="color: #666; font-size: 1.2em;">Loading 7-day forecast...</p>
@@ -391,19 +370,41 @@
 
         <div class="button-group" style="justify-content: center; margin: 30px 0;">
             <button class="btn" onclick="refreshAllData()">🔄 Refresh</button>
-            <button class="btn btn-secondary" onclick="exportForecast()">📥 Export</button>
+            <button class="btn btn-secondary" onclick="exportSchedule()">📥 Export Schedule</button>
         </div>
 
         <div class="alert alert-info">
-            <span style="font-size: 2em;">ℹ️</span>
-            <div><strong>How it works:</strong> AI analyzes LDR sensor data, weather forecasts, and historical patterns using Holt's linear trend forecasting.</div>
+            <span style="font-size: 2em;">🤖</span>
+            <div><strong>Powered by Claude AI:</strong> This system uses advanced AI to analyze your solar sensor data, weather patterns, and historical trends to provide exact predictions and optimize your energy usage. Heavy loads are automatically scheduled during peak solar hours to maximize savings and minimize carbon emissions.</div>
         </div>
     </div>
 
     <script>
         const API_BASE = window.location.origin;
-        let todayChart = null;
-        let currentLocation = { lat: 13.05565, lon: 77.50561, name: 'Unknown' };
+        let energyChart = null;
+        let carbonSavings = { today: 0, week: 0, month: 0 };
+        let currentHourData = [];
+
+        const appliances = {
+            highPower: [
+                { name: '💧 Water Pump', power: 1500, carbon: 1.23 },
+                { name: '🚗 EV Charging', power: 7000, carbon: 5.74 },
+                { name: '🔥 Water Heater', power: 2000, carbon: 1.64 }
+            ],
+            mediumPower: [
+                { name: '🌡️ AC', power: 1800, carbon: 1.48 },
+                { name: '🍳 Oven', power: 1200, carbon: 0.98 },
+                { name: '👕 Washing Machine', power: 800, carbon: 0.66 },
+                { name: '🌀 Dryer', power: 3000, carbon: 2.46 }
+            ],
+            lowPower: [
+                { name: '💡 LED Lights', power: 100, carbon: 0.08 },
+                { name: '📱 Phone Charging', power: 20, carbon: 0.02 },
+                { name: '💻 Laptop', power: 65, carbon: 0.05 },
+                { name: '📺 TV', power: 150, carbon: 0.12 },
+                { name: '❄️ Refrigerator', power: 200, carbon: 0.16 }
+            ]
+        };
 
         function updateClock() {
             document.getElementById('currentTime').textContent = new Date().toLocaleTimeString();
@@ -411,167 +412,245 @@
         setInterval(updateClock, 1000);
         updateClock();
 
-        async function getLocationName(lat, lon) {
+        function calculateCarbonSavings(powerWatts, hours) {
+            const kWh = (powerWatts / 1000) * hours;
+            const co2PerKwh = 0.82;
+            return kWh * co2PerKwh;
+        }
+
+        function updateCarbonDisplay() {
+            document.getElementById('todayCarbon').textContent = carbonSavings.today.toFixed(1);
+            document.getElementById('weekCarbon').textContent = carbonSavings.week.toFixed(1);
+            document.getElementById('monthCarbon').textContent = carbonSavings.month.toFixed(1);
+            const treesPerYear = (carbonSavings.month * 12 / 21).toFixed(1);
+            document.getElementById('treesEquiv').textContent = treesPerYear;
+        }
+
+        async function checkAIStatus() {
             try {
-                const response = await fetch(
-                    `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`,
-                    { headers: { 'User-Agent': 'AI-Solar-Scheduler' } }
-                );
+                const response = await fetch(`${API_BASE}/api/ai-status`);
                 const data = await response.json();
-                if (data.address) {
-                    const parts = [];
-                    if (data.address.city) parts.push(data.address.city);
-                    else if (data.address.town) parts.push(data.address.town);
-                    if (data.address.state) parts.push(data.address.state);
-                    if (data.address.country) parts.push(data.address.country);
-                    return parts.join(', ') || 'Unknown Location';
+                const statusEl = document.getElementById('aiStatus');
+                if (data.claude_ai_enabled) {
+                    statusEl.textContent = '🤖 Claude AI';
+                    statusEl.style.color = '#10b981';
+                } else {
+                    statusEl.textContent = '📊 Fallback';
+                    statusEl.style.color = '#f59e0b';
                 }
-            } catch (e) { console.error(e); }
-            return 'Unknown Location';
-        }
-
-        async function updateLocationDisplay() {
-            const lat = currentLocation.lat;
-            const lon = currentLocation.lon;
-            document.getElementById('displayLat').textContent = lat.toFixed(6);
-            document.getElementById('displayLon').textContent = lon.toFixed(6);
-            document.getElementById('locationName').textContent = 'Fetching...';
-            const name = await getLocationName(lat, lon);
-            currentLocation.name = name;
-            document.getElementById('locationName').textContent = name;
-        }
-
-        async function updateLocation() {
-            const lat = parseFloat(document.getElementById('latitude').value);
-            const lon = parseFloat(document.getElementById('longitude').value);
-            if (isNaN(lat) || isNaN(lon) || lat < -90 || lat > 90 || lon < -180 || lon > 180) {
-                alert('⚠️ Invalid coordinates');
-                return;
+            } catch (e) {
+                document.getElementById('aiStatus').textContent = '❌ Error';
             }
-            currentLocation.lat = lat;
-            currentLocation.lon = lon;
-            await updateLocationDisplay();
-            await refreshAllData();
         }
 
-        function detectLocation() {
-            if (!navigator.geolocation) {
-                alert('⚠️ Geolocation not supported');
-                return;
-            }
-            navigator.geolocation.getCurrentPosition(
-                async (pos) => {
-                    const lat = pos.coords.latitude;
-                    const lon = pos.coords.longitude;
-                    document.getElementById('latitude').value = lat.toFixed(6);
-                    document.getElementById('longitude').value = lon.toFixed(6);
-                    currentLocation.lat = lat;
-                    currentLocation.lon = lon;
-                    await updateLocationDisplay();
-                    await refreshAllData();
-                    alert('✅ Location detected!');
-                },
-                () => alert('⚠️ Unable to detect location')
-            );
-        }
-
-        async function fetchLatestData() {
+        async function fetchLatestWithAI() {
             try {
                 const response = await fetch(`${API_BASE}/api/latest`);
                 const data = await response.json();
-                if (data.status === 'no-data') {
-                    document.getElementById('currentLDR').textContent = 'No Data';
-                    return null;
-                }
-                document.getElementById('currentLDR').textContent = data.ldr || '--';
-                document.getElementById('predictedHours').textContent = data.predicted_sun_hours?.toFixed(2) || '--';
-                if (data.recommended_window) {
-                    document.getElementById('todayWindow').textContent = 
-                        `${data.recommended_window.start} to ${data.recommended_window.end}`;
-                }
-                if (data.time_iso) {
-                    document.getElementById('lastUpdate').textContent = 
-                        new Date(data.time_iso).toLocaleTimeString();
-                }
                 return data;
             } catch (e) {
-                console.error(e);
-                document.getElementById('apiStatus').textContent = '🔴 Error';
+                console.error('Failed to fetch latest data:', e);
                 return null;
             }
         }
 
-        async function fetchWeatherData() {
+        async function generate24HourSchedule() {
+            const scheduleDiv = document.getElementById('hourlySchedule');
+            scheduleDiv.innerHTML = '<div class="loading"><div class="spinner"></div><p style="color: #666;">Generating AI-powered schedule...</p></div>';
+            
             try {
-                const response = await fetch(`${API_BASE}/api/weather`);
-                const data = await response.json();
-                if (data.current) {
-                    document.getElementById('temperature').textContent = data.current.temp?.toFixed(1) || '--';
-                    document.getElementById('cloudCover').textContent = data.current.clouds || '--';
-                }
-            } catch (e) { console.error(e); }
-        }
-
-        async function generate24HourPrediction() {
-            try {
-                const response = await fetch(`${API_BASE}/api/history?limit=100`);
+                const response = await fetch(`${API_BASE}/api/history?limit=200`);
                 const history = await response.json();
-                if (!history || history.length === 0) return;
-
-                const predictions = [];
-                const currentHour = new Date().getHours();
-                const hourlyAvg = {};
                 
-                history.forEach(reading => {
-                    const hour = new Date(reading.timestamp * 1000).getHours();
-                    if (!hourlyAvg[hour]) hourlyAvg[hour] = [];
-                    hourlyAvg[hour].push(reading.ldr);
-                });
-
+                const currentHour = new Date().getHours();
+                currentHourData = [];
+                let totalDailyCarbon = 0;
+                
                 for (let i = 0; i < 24; i++) {
                     const hour = (currentHour + i) % 24;
-                    let predictedLDR = 0;
-                    if (hourlyAvg[hour] && hourlyAvg[hour].length > 0) {
-                        predictedLDR = hourlyAvg[hour].reduce((a, b) => a + b, 0) / hourlyAvg[hour].length;
-                    } else if (hour >= 6 && hour <= 18) {
-                        const distance = Math.abs(hour - 12);
-                        predictedLDR = Math.max(0, 1023 - (distance * 85));
-                    }
-                    predictions.push({
-                        hour: hour,
-                        ldr: Math.round(predictedLDR),
-                        intensity: Math.round((predictedLDR / 1023) * 100)
+                    const isCurrentHour = i === 0;
+                    
+                    const hourlyAvg = calculateHourlyAverage(history, hour);
+                    const solarIntensity = hourlyAvg.intensity;
+                    const ldrReading = hourlyAvg.ldr;
+                    
+                    const recommendations = getSmartRecommendations(solarIntensity, hour, ldrReading);
+                    const energySource = getEnergySource(solarIntensity);
+                    
+                    totalDailyCarbon += recommendations.carbonSaved;
+                    
+                    currentHourData.push({
+                        hour,
+                        solarIntensity,
+                        ldrReading,
+                        recommendations,
+                        energySource,
+                        isCurrentHour
                     });
                 }
-                updateTodayChart(predictions);
-            } catch (e) { console.error(e); }
+                
+                carbonSavings.today = totalDailyCarbon;
+                carbonSavings.week = totalDailyCarbon * 7;
+                carbonSavings.month = totalDailyCarbon * 30;
+                updateCarbonDisplay();
+                
+                displayHourlySchedule(currentHourData);
+                updateEnergyChart(currentHourData);
+                
+            } catch (e) {
+                console.error('Schedule generation error:', e);
+                scheduleDiv.innerHTML = '<p style="color: #ef4444; text-align: center;">⚠️ Error generating schedule</p>';
+            }
         }
 
-        function updateTodayChart(predictions) {
-            const ctx = document.getElementById('todayChart').getContext('2d');
-            const labels = predictions.map(p => `${String(p.hour).padStart(2, '0')}:00`);
-            const data = predictions.map(p => p.ldr);
-            const intensityData = predictions.map(p => p.intensity);
+        function calculateHourlyAverage(history, targetHour) {
+            const hourReadings = history.filter(r => {
+                const date = new Date(r.timestamp * 1000);
+                return date.getHours() === targetHour;
+            });
             
-            if (todayChart) todayChart.destroy();
+            if (hourReadings.length === 0) {
+                if (targetHour >= 6 && targetHour <= 18) {
+                    const distance = Math.abs(targetHour - 12);
+                    const ldr = Math.max(0, 1023 - (distance * 85));
+                    return { ldr: Math.round(ldr), intensity: Math.round((ldr / 1023) * 100) };
+                }
+                return { ldr: 0, intensity: 0 };
+            }
             
-            todayChart = new Chart(ctx, {
+            const avgLdr = hourReadings.reduce((sum, r) => sum + r.ldr, 0) / hourReadings.length;
+            return {
+                ldr: Math.round(avgLdr),
+                intensity: Math.round((avgLdr / 1023) * 100)
+            };
+        }
+
+        function getSmartRecommendations(intensity, hour, ldrReading) {
+            const recommendations = {
+                title: '',
+                appliances: [],
+                carbonSaved: 0,
+                strategy: ''
+            };
+            
+            if (intensity >= 80) {
+                recommendations.title = '🌟 Peak Solar - Run Heavy Loads';
+                recommendations.appliances = [
+                    ...appliances.highPower,
+                    ...appliances.mediumPower
+                ];
+                recommendations.strategy = '100% Solar - All heavy equipment recommended';
+                recommendations.appliances.forEach(a => {
+                    recommendations.carbonSaved += a.carbon;
+                });
+            } else if (intensity >= 50) {
+                recommendations.title = '☀️ Good Solar - Medium Loads';
+                recommendations.appliances = [
+                    ...appliances.mediumPower,
+                    ...appliances.lowPower.filter(a => a.power > 100)
+                ];
+                recommendations.strategy = '80% Solar + 20% Grid - Medium loads OK';
+                recommendations.appliances.forEach(a => {
+                    recommendations.carbonSaved += a.carbon * 0.8;
+                });
+            } else if (intensity >= 20) {
+                recommendations.title = '🌤️ Mild Solar - Light Loads Only';
+                recommendations.appliances = appliances.lowPower;
+                recommendations.strategy = '40% Solar + 60% Grid - Light loads only';
+                recommendations.appliances.forEach(a => {
+                    recommendations.carbonSaved += a.carbon * 0.4;
+                });
+            } else {
+                recommendations.title = '🌙 No Solar - Grid Power';
+                recommendations.appliances = appliances.lowPower.filter(a => a.power <= 200);
+                recommendations.strategy = '100% Grid - Essential loads only';
+                recommendations.carbonSaved = 0;
+            }
+            
+            return recommendations;
+        }
+
+        function getEnergySource(intensity) {
+            if (intensity >= 50) return { type: 'solar', label: '☀️ Solar', color: 'source-solar' };
+            if (intensity >= 20) return { type: 'hybrid', label: '🔄 Hybrid', color: 'source-hybrid' };
+            return { type: 'grid', label: '⚡ Grid', color: 'source-grid' };
+        }
+
+        function displayHourlySchedule(scheduleData) {
+            const scheduleDiv = document.getElementById('hourlySchedule');
+            scheduleDiv.innerHTML = '';
+            
+            scheduleData.forEach(hour => {
+                const card = document.createElement('div');
+                let cardClass = 'hour-card';
+                if (hour.solarIntensity >= 80) cardClass += ' solar-peak';
+                else if (hour.solarIntensity >= 50) cardClass += ' solar-moderate';
+                else cardClass += ' solar-low';
+                if (hour.isCurrentHour) cardClass += ' current-hour';
+                
+                card.className = cardClass;
+                
+                let icon = '☀️';
+                if (hour.solarIntensity < 20) icon = '🌙';
+                else if (hour.solarIntensity < 50) icon = '🌤️';
+                else if (hour.solarIntensity < 80) icon = '☀️';
+                else icon = '🌟';
+                
+                const applianceHTML = hour.recommendations.appliances.slice(0, 4).map(a => {
+                    let powerClass = 'low-power';
+                    if (a.power >= 1500) powerClass = 'high-power';
+                    else if (a.power >= 500) powerClass = 'medium-power';
+                    return `<span class="appliance-tag ${powerClass}">${a.name} (${a.power}W)</span>`;
+                }).join('');
+                
+                card.innerHTML = `
+                    <div class="hour-time">${String(hour.hour).padStart(2, '0')}:00${hour.isCurrentHour ? '<br><span style="font-size: 0.5em; color: #10b981;">NOW</span>' : ''}</div>
+                    <div class="hour-solar">
+                        <div class="solar-icon">${icon}</div>
+                        <div class="solar-power">${hour.ldrReading}</div>
+                        <div class="solar-percentage">${hour.solarIntensity}%</div>
+                    </div>
+                    <div class="hour-recommendation">
+                        <div class="recommendation-title">${hour.recommendations.title}</div>
+                        <div class="appliance-list">${applianceHTML || '<span style="color: #666;">No recommendations</span>'}</div>
+                        <div style="font-size: 0.85em; color: #666; margin-top: 5px;">${hour.recommendations.strategy}</div>
+                        <div style="font-size: 0.85em; color: #10b981; font-weight: bold;">💚 Saves: ${hour.recommendations.carbonSaved.toFixed(2)} kg CO₂</div>
+                    </div>
+                    <div class="energy-source ${hour.energySource.color}">${hour.energySource.label}</div>
+                `;
+                
+                scheduleDiv.appendChild(card);
+            });
+        }
+
+        function updateEnergyChart(scheduleData) {
+            const ctx = document.getElementById('energyChart').getContext('2d');
+            const labels = scheduleData.map(h => `${String(h.hour).padStart(2, '0')}:00`);
+            const solarData = scheduleData.map(h => h.ldrReading);
+            const loadData = scheduleData.map(h => {
+                const totalPower = h.recommendations.appliances.reduce((sum, a) => sum + a.power, 0);
+                return totalPower;
+            });
+            
+            if (energyChart) energyChart.destroy();
+            
+            energyChart = new Chart(ctx, {
                 type: 'line',
                 data: {
                     labels: labels,
                     datasets: [{
-                        label: 'LDR Reading',
-                        data: data,
+                        label: 'Solar Production (LDR)',
+                        data: solarData,
                         borderColor: '#f59e0b',
                         backgroundColor: 'rgba(245, 158, 11, 0.1)',
                         tension: 0.4,
                         fill: true,
                         yAxisID: 'y'
                     }, {
-                        label: 'Intensity (%)',
-                        data: intensityData,
-                        borderColor: '#10b981',
-                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                        label: 'Recommended Load (W)',
+                        data: loadData,
+                        borderColor: '#3b82f6',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
                         tension: 0.4,
                         fill: true,
                         yAxisID: 'y1'
@@ -580,9 +659,23 @@
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false
+                    },
                     scales: {
-                        y: { beginAtZero: true, max: 1023, position: 'left' },
-                        y1: { beginAtZero: true, max: 100, position: 'right', grid: { drawOnChartArea: false } }
+                        y: { 
+                            beginAtZero: true, 
+                            max: 1023, 
+                            position: 'left',
+                            title: { display: true, text: 'Solar (LDR)' }
+                        },
+                        y1: { 
+                            beginAtZero: true, 
+                            position: 'right', 
+                            grid: { drawOnChartArea: false },
+                            title: { display: true, text: 'Load (Watts)' }
+                        }
                     }
                 }
             });
@@ -623,6 +716,8 @@
                 else if (day.predicted_sun_hours < 2) icon = '⛅';
                 else if (day.predicted_sun_hours < 4) icon = '🌤️';
                 
+                const carbonSaved = (day.predicted_sun_hours * 0.82).toFixed(2);
+                
                 const card = document.createElement('div');
                 card.className = `day-card ${isToday ? 'today' : ''}`;
                 card.innerHTML = `
@@ -630,34 +725,33 @@
                         <div>
                             <div class="day-date">${dayName}</div>
                             <div style="color: #666;">${dateStr}</div>
-                            ${isToday ? '<div style="color: #667eea; font-weight: bold;">TODAY</div>' : ''}
+                            ${isToday ? '<div style="color: #667eea; font-weight: bold; margin-top: 5px;">TODAY</div>' : ''}
                         </div>
                         <div class="day-icon">${icon}</div>
                     </div>
-                    <div class="sun-hours">
-                        <span class="sun-hours-value">${day.predicted_sun_hours.toFixed(1)}</span>
-                        <span class="sun-hours-label">Predicted Sun Hours</span>
+                    <div style="text-align: center; margin: 20px 0;">
+                        <span style="font-size: 3em; font-weight: bold; color: #f59e0b; display: block;">${day.predicted_sun_hours.toFixed(1)}</span>
+                        <span style="color: #666; font-size: 1em;">Predicted Sun Hours</span>
                     </div>
-                    <div class="progress-bar">
-                        <div class="progress-fill" style="width: ${Math.min(100, (day.predicted_sun_hours / 6) * 100)}%">
-                            ${day.predicted_sun_hours >= 4 ? 'Excellent' : day.predicted_sun_hours >= 2 ? 'Good' : 'Moderate'}
-                        </div>
-                    </div>
-                    <div class="recommended-window">
+                    <div style="background: #f8f9fa; padding: 15px; border-radius: 10px; margin: 15px 0;">
                         <div style="text-align: center; color: #666; margin-bottom: 5px;"><strong>⏰ Optimal Window</strong></div>
-                        <div class="window-time">${day.recommended_window.start} - ${day.recommended_window.end}</div>
+                        <div style="font-size: 1.3em; font-weight: bold; color: #667eea; text-align: center; margin: 10px 0;">${day.recommended_window.start} - ${day.recommended_window.end}</div>
                     </div>
-                    <div class="weather-info">
-                        <div class="weather-stat">
-                            <div class="weather-stat-value">${day.clouds}%</div>
-                            <div class="weather-stat-label">Clouds</div>
+                    <div style="display: flex; justify-content: space-around; margin-top: 15px; padding-top: 15px; border-top: 1px solid #e5e7eb;">
+                        <div style="text-align: center;">
+                            <div style="font-size: 1.3em; font-weight: bold; color: #667eea;">${day.clouds}%</div>
+                            <div style="font-size: 0.85em; color: #666;">Clouds</div>
                         </div>
-                        <div class="weather-stat">
-                            <div class="weather-stat-value">${(day.pop * 100).toFixed(0)}%</div>
-                            <div class="weather-stat-label">Rain</div>
+                        <div style="text-align: center;">
+                            <div style="font-size: 1.3em; font-weight: bold; color: #667eea;">${(day.pop * 100).toFixed(0)}%</div>
+                            <div style="font-size: 0.85em; color: #666;">Rain</div>
+                        </div>
+                        <div style="text-align: center;">
+                            <div style="font-size: 1.3em; font-weight: bold; color: #10b981;">${carbonSaved}</div>
+                            <div style="font-size: 0.85em; color: #666;">kg CO₂ saved</div>
                         </div>
                     </div>
-                    <div class="suggestion"><strong>💡 Recommendation:</strong><br>${day.suggestion}</div>
+                    <div style="background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 15px; border-radius: 10px; margin-top: 15px; font-size: 0.95em; line-height: 1.5;"><strong>💡 Recommendation:</strong><br>${day.suggestion}</div>
                 `;
                 grid.appendChild(card);
             });
@@ -665,21 +759,47 @@
 
         async function refreshAllData() {
             document.getElementById('apiStatus').textContent = '🟡 Refreshing...';
-            await fetchLatestData();
-            await fetchWeatherData();
-            await generate24HourPrediction();
-            await fetch7DayForecast();
-            document.getElementById('apiStatus').textContent = '🟢 Live';
+            
+            try {
+                await checkAIStatus();
+                await generate24HourSchedule();
+                await fetch7DayForecast();
+                document.getElementById('apiStatus').textContent = '🟢 Live';
+            } catch (e) {
+                console.error('Refresh error:', e);
+                document.getElementById('apiStatus').textContent = '🔴 Error';
+            }
         }
 
-        function exportForecast() {
-            alert('📥 Export feature coming soon!');
+        function exportSchedule() {
+            const csvContent = "data:text/csv;charset=utf-8," + 
+                "Hour,Solar Intensity (%),LDR Reading,Energy Source,Recommendations,Carbon Saved (kg)\n" +
+                currentHourData.map(h => {
+                    const apps = h.recommendations.appliances.map(a => a.name).join('; ');
+                    return `${String(h.hour).padStart(2, '0')}:00,${h.solarIntensity},${h.ldrReading},${h.energySource.label},${apps},${h.recommendations.carbonSaved.toFixed(2)}`;
+                }).join("\n");
+            
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `solar_schedule_${new Date().toISOString().split('T')[0]}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
         }
 
+        // Initialize on page load
         window.onload = async function() {
-            await updateLocationDisplay();
+            console.log('Initializing AI Solar Scheduler...');
+            console.log('API Base:', API_BASE);
+            
+            // Start periodic updates
             await refreshAllData();
+            
+            // Refresh every 5 minutes
             setInterval(refreshAllData, 5 * 60 * 1000);
+            
+            console.log('✅ System initialized');
         };
     </script>
 </body>
