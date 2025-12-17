@@ -893,7 +893,7 @@ CORS(app, origins=[
     "http://localhost:5000", 
     "http://127.0.0.1:5000",
     "http://0.0.0.0:5000",
-    "http://10.129.142.245:5000"
+    "http://192.168.29.229:5000"
 ], methods=["GET", "POST", "PUT", "DELETE"], allow_headers=["Content-Type", "X-API-Key"])
 
 # ============================================================
@@ -921,11 +921,6 @@ def home():
         </body>
         </html>
         """
-
-@app.route('/diagnostics')
-def diagnostics():
-    """Diagnostic page"""
-    return render_template('diagnostics.html')
 
 @app.route('/health')
 def health_check():
@@ -1029,7 +1024,7 @@ def init_db():
     db.close()
 
 # ============================================================
-# VALIDATION FUNCTION
+# ✅ FIXED: VALIDATION FUNCTION MOVED HERE (BEFORE UPLOAD ENDPOINT)
 # ============================================================
 def validate_sensor_data(data):
     """Enhanced validation for sensor data"""
@@ -1068,17 +1063,20 @@ def validate_sensor_data(data):
 # ============================================================
 @app.route('/api/data/upload', methods=['POST'])
 def upload_sensor_data():
-    """✅ FIXED: Upload sensor data with proper timestamp handling for Arduino"""
+    """Upload sensor data with enhanced validation"""
     client_id = request.remote_addr
     allowed, remaining = check_rate_limit(client_id, limit=60, window=3600, cost=1)
     if not allowed:
         return jsonify({"error": "Rate limit exceeded"}), 429
 
     try:
+        logger.info("UPLOAD ENDPOINT HIT SUCCESSFULLY")
+
         data = request.get_json()
         if not data:
             return jsonify({"error": "No JSON data provided"}), 400
 
+        # ✅ NOW THIS WILL WORK - validate_sensor_data is defined above
         is_valid, message = validate_sensor_data(data)
         if not is_valid:
             return jsonify({"error": message}), 400
@@ -1086,16 +1084,7 @@ def upload_sensor_data():
         db = get_db()
         c = db.cursor()
 
-        # ✅ CRITICAL FIX: Convert relative Arduino timestamps to absolute Unix timestamps
-        raw_timestamp = data.get('timestamp', int(time.time()))
-        
-        # If timestamp is too small (< Jan 1, 2020 = 1577836800), treat as relative
-        if raw_timestamp < 1577836800:  
-            timestamp = int(time.time())  # Use current server time
-            logger.info(f"🔧 Converted relative Arduino timestamp {raw_timestamp}s → {timestamp} (current time)")
-        else:
-            timestamp = raw_timestamp
-        
+        timestamp = data.get('timestamp', int(time.time()))
         ldr = data['ldr']
         device_id = data.get('deviceId', 'default-device')
         temperature = data.get('temperature')
@@ -1127,19 +1116,19 @@ def upload_sensor_data():
         }
 
         logger.info(
-            f"✅ STORED: {device_id} | LDR={ldr} | TEMP={temperature}°C | "
-            f"Time={datetime.fromtimestamp(timestamp, timezone.utc).strftime('%H:%M:%S')}"
+            f"Stored sensor data from {device_id}: "
+            f"LDR={ldr}, TEMP={temperature}, HUM={humidity}"
         )
 
         return jsonify(response_data)
 
     except Exception as e:
-        logger.error(f"❌ Upload error: {e}")
+        logger.error(f"Error uploading sensor data: {e}")
         return jsonify({"status": "error", "message": str(e)}), 500
 
 @app.route('/api/data/readings', methods=['GET'])
 def get_readings():
-    """✅ ENHANCED: Get sensor readings WITH DETAILED LOGGING"""
+    """Get sensor readings"""
     try:
         db = get_db()
         c = db.cursor()
@@ -1147,8 +1136,6 @@ def get_readings():
         limit = request.args.get('limit', 100, type=int)
         device_id = request.args.get('deviceId')
         hours_back = request.args.get('hours', type=int)
-        
-        logger.info(f"📊 READINGS REQUEST: limit={limit}, deviceId={device_id}, hours={hours_back}")
         
         query = "SELECT * FROM readings WHERE 1=1"
         params = []
@@ -1161,39 +1148,12 @@ def get_readings():
             cutoff_ts = int(time.time()) - (hours_back * 3600)
             query += " AND timestamp >= ?"
             params.append(cutoff_ts)
-            logger.info(f"   Filtering: timestamp >= {cutoff_ts} ({datetime.fromtimestamp(cutoff_ts, timezone.utc).isoformat()})")
         
         query += " ORDER BY timestamp DESC LIMIT ?"
         params.append(limit)
         
         c.execute(query, params)
         readings = [dict(row) for row in c.fetchall()]
-        
-        # ✅ LOG THE PROCESSED DATA BEING SENT TO FRONTEND
-        if readings:
-            logger.info(f"📤 SENDING {len(readings)} READINGS TO FRONTEND:")
-            logger.info(f"   Latest reading:")
-            latest = readings[0]
-            logger.info(f"     - ID: {latest.get('id')}")
-            logger.info(f"     - Timestamp: {latest.get('timestamp')} ({datetime.fromtimestamp(latest['timestamp'], timezone.utc).isoformat()})")
-            logger.info(f"     - LDR: {latest.get('ldr')}")
-            logger.info(f"     - Temp: {latest.get('temperature')}°C")
-            logger.info(f"     - Humidity: {latest.get('humidity')}%")
-            logger.info(f"     - Device: {latest.get('deviceId')}")
-            
-            # Show hourly distribution
-            hour_dist = {}
-            for reading in readings:
-                hour = datetime.fromtimestamp(reading['timestamp'], timezone.utc).hour
-                hour_dist[hour] = hour_dist.get(hour, 0) + 1
-            logger.info(f"   Hour distribution: {dict(sorted(hour_dist.items()))}")
-            
-            # Show LDR stats
-            ldr_values = [r['ldr'] for r in readings if r.get('ldr')]
-            if ldr_values:
-                logger.info(f"   LDR stats: min={min(ldr_values)}, max={max(ldr_values)}, avg={sum(ldr_values)/len(ldr_values):.1f}")
-        else:
-            logger.warning("⚠️  NO READINGS FOUND IN DATABASE")
         
         return jsonify({
             "status": "success",
@@ -1202,125 +1162,8 @@ def get_readings():
         })
         
     except Exception as e:
-        logger.error(f"❌ Error fetching readings: {e}")
+        logger.error(f"Error fetching readings: {e}")
         return jsonify({"status": "error", "message": str(e)}), 500
-
-
-@app.route('/api/simulate', methods=['GET', 'POST'])
-def simulate_data():
-    """Enhanced simulation endpoint with realistic data"""
-    client_id = request.remote_addr
-    allowed, remaining = check_rate_limit(client_id, limit=10, window=3600)
-    if not allowed:
-        return jsonify({"error": "Rate limit exceeded", "retry_after": 3600}), 429
-    
-    try:
-        hours = request.args.get('hours', 24, type=int)
-        if hours < 1 or hours > 168:
-            return jsonify({"error": "Hours must be between 1 and 168"}), 400
-            
-        device_id = request.args.get('deviceId', 'simulated-device')
-        if not re.match(r'^[a-zA-Z0-9_-]{1,50}$', device_id):
-            return jsonify({"error": "Invalid device ID format"}), 400
-        
-        logger.info(f"Generating {hours} hours of simulated data for {device_id}")
-        
-        db = get_db()
-        c = db.cursor()
-        
-        simulated_data = generate_realistic_solar_data(hours=hours)
-        
-        for data_point in simulated_data:
-            c.execute(
-                "INSERT INTO readings (timestamp, ldr, deviceId) VALUES (?, ?, ?)",
-                (data_point['timestamp'], data_point['ldr'], device_id)
-            )
-        
-        db.commit()
-        
-        ldr_values = [d['ldr'] for d in simulated_data]
-        daylight_data = [d for d in simulated_data if 6 <= d['hour'] <= 18]
-        night_data = [d for d in simulated_data if d['hour'] < 6 or d['hour'] > 18]
-        
-        return jsonify({
-            "status": "success",
-            "message": f"Generated {hours} hours of realistic solar data",
-            "data_points": len(simulated_data),
-            "summary": {
-                "daylight_hours": len(daylight_data),
-                "night_hours": len(night_data),
-                "max_ldr": max(ldr_values),
-                "min_ldr": min(ldr_values),
-                "avg_ldr": round(np.mean(ldr_values), 2),
-                "avg_daylight_ldr": round(np.mean([d['ldr'] for d in daylight_data]), 2) if daylight_data else 0,
-                "avg_night_ldr": round(np.mean([d['ldr'] for d in night_data]), 2) if night_data else 0
-            }
-        })
-        
-    except Exception as e:
-        logger.error(f"Simulation error: {e}")
-        return jsonify({"status": "error", "message": str(e)}), 500
-
-@app.route('/api/analytics/summary')
-def analytics_summary():
-    """Get analytics summary"""
-    try:
-        db = get_db()
-        c = db.cursor()
-        
-        c.execute("""
-            SELECT 
-                COUNT(*) as total_readings,
-                MIN(timestamp) as first_reading,
-                MAX(timestamp) as last_reading,
-                AVG(ldr) as avg_ldr,
-                MAX(ldr) as max_ldr,
-                MIN(ldr) as min_ldr
-            FROM readings
-        """)
-        stats = dict(c.fetchone())
-        
-        c.execute("""
-            SELECT deviceId, COUNT(*) as count 
-            FROM readings 
-            GROUP BY deviceId 
-            ORDER BY count DESC
-        """)
-        device_stats = [dict(row) for row in c.fetchall()]
-        
-        c.execute("""
-            SELECT 
-                strftime('%H', datetime(timestamp, 'unixepoch')) as hour,
-                AVG(ldr) as avg_ldr,
-                COUNT(*) as count
-            FROM readings 
-            GROUP BY hour 
-            ORDER BY hour
-        """)
-        hourly_patterns = [dict(row) for row in c.fetchall()]
-        
-        return jsonify({
-            "status": "success",
-            "summary": {
-                "total_readings": stats['total_readings'],
-                "date_range": {
-                    "first": datetime.fromtimestamp(stats['first_reading'], timezone.utc).isoformat() if stats['first_reading'] else None,
-                    "last": datetime.fromtimestamp(stats['last_reading'], timezone.utc).isoformat() if stats['last_reading'] else None
-                },
-                "ldr_statistics": {
-                    "average": round(stats['avg_ldr'], 2) if stats['avg_ldr'] else 0,
-                    "maximum": stats['max_ldr'],
-                    "minimum": stats['min_ldr']
-                }
-            },
-            "device_distribution": device_stats,
-            "hourly_patterns": hourly_patterns
-        })
-        
-    except Exception as e:
-        logger.error(f"Analytics error: {e}")
-        return jsonify({"status": "error", "message": str(e)}), 500
-
 
 @app.route('/api/weather', methods=['GET'])
 def get_weather():
@@ -1343,11 +1186,9 @@ if __name__ == '__main__':
     initialize_system()
     
     print("\n" + "="*70)
-    print("🚀 ENHANCED SMART SOLAR ENERGY SCHEDULER - WITH DETAILED LOGGING")
+    print("🚀 ENHANCED SMART SOLAR ENERGY SCHEDULER - PRODUCTION READY")
     print("="*70)
     print(f"\n🎯 Server starting on http://0.0.0.0:{PORT}")
-    print(f"✅ TIMESTAMP FIX: Arduino relative timestamps will be converted")
-    print(f"📊 ENHANCED LOGGING: All data sent to frontend will be logged")
     print("="*70 + "\n")
     
     app.run(host='0.0.0.0', port=PORT, debug=True, use_reloader=False)

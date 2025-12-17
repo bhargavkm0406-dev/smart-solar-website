@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SolarAI Diagnostics</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .header {
+            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+        }
+        .card {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .status {
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        .status-ok { background: #d1fae5; color: #065f46; }
+        .status-warning { background: #fef3c7; color: #92400e; }
+        .status-error { background: #fee2e2; color: #991b1b; }
+        .btn {
+            background: #2563eb;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            margin-right: 10px;
+            margin-top: 10px;
+        }
+        .btn:hover {
+            background: #1d4ed8;
+        }
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        .data-table th, .data-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        .data-table th {
+            background: #f9fafb;
+            font-weight: 600;
+        }
+        pre {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 15px;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-size: 13px;
+        }
+        h2 {
+            margin-top: 0;
+            color: #1e293b;
+        }
+        .metric {
+            display: inline-block;
+            margin: 10px 20px 10px 0;
+        }
+        .metric-label {
+            color: #64748b;
+            font-size: 14px;
+        }
+        .metric-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: #2563eb;
+        }
+        .spinner {
+            border: 4px solid #f3f4f6;
+            border-top: 4px solid #2563eb;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            margin-right: 10px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🔍 SolarAI System Diagnostics</h1>
+        <p>Real-time monitoring and troubleshooting</p>
+    </div>
+
+    <div class="card">
+        <h2>System Status</h2>
+        <div id="systemStatus">
+            <div class="spinner"></div> Checking system...
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>Recent Sensor Readings</h2>
+        <div>
+            <button class="btn" onclick="checkReadings()">🔄 Refresh Readings</button>
+            <button class="btn" onclick="generateTestData()">🧪 Generate Test Data</button>
+        </div>
+        <div id="readingsStatus"></div>
+        <div id="readingsTable"></div>
+    </div>
+
+    <div class="card">
+        <h2>API Endpoints Test</h2>
+        <div id="apiTests">Testing endpoints...</div>
+    </div>
+
+    <div class="card">
+        <h2>Database Statistics</h2>
+        <div id="dbStats">Loading...</div>
+    </div>
+
+    <div class="card">
+        <h2>Raw API Response</h2>
+        <pre id="rawResponse">No data yet</pre>
+    </div>
+
+    <script>
+        const API_BASE = window.location.origin;
+
+        async function checkReadings() {
+            const statusDiv = document.getElementById('readingsStatus');
+            statusDiv.innerHTML = '<div class="spinner"></div> Fetching readings...';
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/data/readings?limit=10`);
+                const data = await response.json();
+                
+                document.getElementById('rawResponse').textContent = JSON.stringify(data, null, 2);
+                
+                if (data.readings && data.readings.length > 0) {
+                    statusDiv.innerHTML = `<span class="status status-ok">✓ Found ${data.readings.length} readings</span>`;
+                    
+                    let tableHTML = `
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Time</th>
+                                    <th>LDR</th>
+                                    <th>Solar %</th>
+                                    <th>Temp</th>
+                                    <th>Humidity</th>
+                                    <th>Device ID</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                    `;
+                    
+                    data.readings.forEach(r => {
+                        const time = new Date(r.timestamp * 1000).toLocaleTimeString();
+                        const solarPercent = Math.round((r.ldr / 1023) * 100);
+                        tableHTML += `
+                            <tr>
+                                <td>${time}</td>
+                                <td>${r.ldr}</td>
+                                <td>${solarPercent}%</td>
+                                <td>${r.temperature || 'N/A'}°C</td>
+                                <td>${r.humidity || 'N/A'}%</td>
+                                <td>${r.deviceId}</td>
+                            </tr>
+                        `;
+                    });
+                    
+                    tableHTML += '</tbody></table>';
+                    document.getElementById('readingsTable').innerHTML = tableHTML;
+                } else {
+                    statusDiv.innerHTML = '<span class="status status-warning">⚠ No readings found in database</span>';
+                    document.getElementById('readingsTable').innerHTML = '<p>No data available. Click "Generate Test Data" to create sample data.</p>';
+                }
+            } catch (error) {
+                statusDiv.innerHTML = `<span class="status status-error">✗ Error: ${error.message}</span>`;
+                console.error(error);
+            }
+        }
+
+        async function generateTestData() {
+            try {
+                const response = await fetch(`${API_BASE}/api/simulate?hours=24`);
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    alert(`✓ Generated ${data.data_points} hours of test data!`);
+                    await checkReadings();
+                    await runDiagnostics();
+                } else {
+                    alert('Failed to generate test data');
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        }
+
+        async function testEndpoint(name, url) {
+            try {
+                const start = Date.now();
+                const response = await fetch(url);
+                const duration = Date.now() - start;
+                const data = await response.json();
+                
+                return {
+                    name,
+                    status: response.ok ? 'OK' : 'ERROR',
+                    statusCode: response.status,
+                    duration: `${duration}ms`,
+                    data
+                };
+            } catch (error) {
+                return {
+                    name,
+                    status: 'ERROR',
+                    error: error.message
+                };
+            }
+        }
+
+        async function runDiagnostics() {
+            // Test all endpoints
+            const tests = await Promise.all([
+                testEndpoint('Health Check', `${API_BASE}/api/health`),
+                testEndpoint('Weather API', `${API_BASE}/api/weather`),
+                testEndpoint('Readings API', `${API_BASE}/api/data/readings?limit=5`),
+                testEndpoint('Analytics', `${API_BASE}/api/analytics/summary`)
+            ]);
+            
+            let html = '<table class="data-table"><thead><tr><th>Endpoint</th><th>Status</th><th>Response Time</th></tr></thead><tbody>';
+            
+            tests.forEach(test => {
+                const statusClass = test.status === 'OK' ? 'status-ok' : 'status-error';
+                html += `
+                    <tr>
+                        <td>${test.name}</td>
+                        <td><span class="status ${statusClass}">${test.status} ${test.statusCode || ''}</span></td>
+                        <td>${test.duration || test.error || 'N/A'}</td>
+                    </tr>
+                `;
+            });
+            
+            html += '</tbody></table>';
+            document.getElementById('apiTests').innerHTML = html;
+            
+            // Get database stats
+            const analyticsTest = tests.find(t => t.name === 'Analytics');
+            if (analyticsTest && analyticsTest.data && analyticsTest.data.summary) {
+                const summary = analyticsTest.data.summary;
+                document.getElementById('dbStats').innerHTML = `
+                    <div class="metric">
+                        <div class="metric-label">Total Readings</div>
+                        <div class="metric-value">${summary.total_readings || 0}</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-label">Average LDR</div>
+                        <div class="metric-value">${summary.ldr_statistics?.average || 0}</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-label">Max LDR</div>
+                        <div class="metric-value">${summary.ldr_statistics?.maximum || 0}</div>
+                    </div>
+                `;
+            }
+            
+            // Overall system status
+            const allOk = tests.every(t => t.status === 'OK');
+            const readingsTest = tests.find(t => t.name === 'Readings API');
+            const hasData = readingsTest?.data?.readings?.length > 0;
+            
+            let statusHTML = '';
+            if (allOk && hasData) {
+                statusHTML = '<span class="status status-ok">✓ All systems operational</span>';
+            } else if (allOk && !hasData) {
+                statusHTML = '<span class="status status-warning">⚠ System OK but no sensor data found</span>';
+            } else {
+                statusHTML = '<span class="status status-error">✗ System errors detected</span>';
+            }
+            
+            document.getElementById('systemStatus').innerHTML = statusHTML;
+        }
+
+        // Run diagnostics on load
+        window.onload = async function() {
+            await runDiagnostics();
+            await checkReadings();
+        };
+    </script>
+</body>
+</html>

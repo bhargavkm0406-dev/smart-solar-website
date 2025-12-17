@@ -41,13 +41,14 @@
             padding: 20px;
         }
         
-        /* Header Styles */
         header {
             display: flex;
             justify-content: space-between;
             align-items: center;
             padding: 20px 0;
             margin-bottom: 30px;
+            flex-wrap: wrap;
+            gap: 20px;
         }
         
         .logo {
@@ -81,6 +82,7 @@
         .header-stats {
             display: flex;
             gap: 20px;
+            flex-wrap: wrap;
         }
         
         .stat-item {
@@ -106,7 +108,6 @@
             margin-top: 4px;
         }
         
-        /* Dashboard Grid */
         .dashboard-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -118,7 +119,7 @@
             background: white;
             border-radius: 16px;
             box-shadow: var(--card-shadow);
-            overflow: visible; /* Changed from hidden to visible for tooltips */
+            overflow: visible;
             transition: transform 0.3s, box-shadow 0.3s;
             position: relative;
         }
@@ -132,7 +133,7 @@
             padding: 20px 24px;
             border-bottom: 1px solid var(--gray-light);
             display: flex;
-            justify-content: between;
+            justify-content: space-between;
             align-items: center;
         }
         
@@ -154,7 +155,6 @@
             position: relative;
         }
         
-        /* Savings Card */
         .savings-card {
             grid-column: 1 / -1;
             background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
@@ -183,35 +183,13 @@
             opacity: 0.9;
         }
         
-        /* Hourly Forecast */
-        .hourly-forecast-container {
-            position: relative;
-        }
-        
         .hourly-forecast {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
             gap: 16px;
             max-height: 500px;
             overflow-y: auto;
             padding-right: 10px;
-            position: relative;
-            z-index: 1;
-        }
-        
-        /* Scrollbar styling */
-        .hourly-forecast::-webkit-scrollbar {
-            width: 8px;
-        }
-        
-        .hourly-forecast::-webkit-scrollbar-track {
-            background: #f1f1f1;
-            border-radius: 10px;
-        }
-        
-        .hourly-forecast::-webkit-scrollbar-thumb {
-            background: var(--primary);
-            border-radius: 10px;
         }
         
         .hour-card {
@@ -222,20 +200,15 @@
             box-shadow: var(--card-shadow);
             transition: all 0.3s;
             cursor: pointer;
-            position: relative;
             border: 2px solid transparent;
-            min-height: 220px;
+            min-height: 320px;
             display: flex;
             flex-direction: column;
-            justify-content: space-between;
-            z-index: 10;
         }
         
         .hour-card:hover {
             transform: translateY(-5px);
-            box-shadow: var(--card-shadow-hover);
             border-color: var(--primary);
-            z-index: 100; /* Higher z-index on hover */
         }
         
         .hour-card.current {
@@ -247,30 +220,23 @@
             font-size: 1.2rem;
             font-weight: 600;
             color: var(--dark);
-            margin-bottom: 8px;
         }
         
         .hour-icon {
             font-size: 2.5rem;
             margin: 8px 0;
-            height: 50px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
         }
         
         .hour-temp {
             font-size: 1.1rem;
             font-weight: 600;
             color: var(--danger);
-            margin: 5px 0;
         }
         
         .hour-solar {
             font-size: 0.9rem;
             color: var(--accent);
             font-weight: 600;
-            margin: 5px 0;
         }
         
         .hour-source {
@@ -296,120 +262,69 @@
             background: #e5e7eb;
             color: #374151;
         }
-        
-        /* Appliance Tags */
-        .appliance-tags {
+
+        .hour-appliances {
+            margin-top: auto;
+            padding-top: 12px;
+            border-top: 1px solid var(--gray-light);
             display: flex;
-            flex-wrap: wrap;
-            gap: 4px;
-            justify-content: center;
-            margin: 8px 0;
-        }
-        
-        .appliance-tag {
-            background: #f1f5f9;
-            padding: 3px 8px;
-            border-radius: 12px;
-            font-size: 0.7rem;
-            white-space: nowrap;
-        }
-        
-        .hour-stats {
-            display: flex;
-            justify-content: space-between;
-            margin-top: 8px;
-            font-size: 0.75rem;
-        }
-        
-        .carbon-stat {
-            color: var(--secondary);
-            font-weight: 600;
-        }
-        
-        .cost-stat {
-            color: var(--accent);
-            font-weight: 600;
-        }
-        
-        /* Tooltip - Fixed Positioning */
-        .hour-tooltip {
-            position: fixed; /* Changed from absolute to fixed */
-            background: var(--dark);
-            color: white;
-            padding: 16px;
-            border-radius: 10px;
-            width: 280px;
-            box-shadow: var(--card-shadow-hover);
-            z-index: 1000; /* Very high z-index to ensure it's on top */
-            opacity: 0;
-            visibility: hidden;
-            transition: all 0.3s;
-            pointer-events: none;
-            text-align: left;
-            max-height: 300px;
-            overflow-y: auto;
-        }
-        
-        .hour-card:hover .hour-tooltip {
-            opacity: 1;
-            visibility: visible;
-        }
-        
-        /* Ensure tooltip positioning works correctly */
-        .hourly-forecast-container {
-            position: relative;
-        }
-        
-        .tooltip-title {
-            font-size: 1rem;
-            font-weight: 600;
-            margin-bottom: 8px;
-            color: var(--accent);
-        }
-        
-        .tooltip-details {
-            font-size: 0.85rem;
-            margin-bottom: 10px;
-            line-height: 1.5;
-        }
-        
-        .tooltip-appliances {
-            display: flex;
-            flex-wrap: wrap;
+            flex-direction: column;
             gap: 6px;
-            margin: 10px 0;
         }
-        
-        .tooltip-appliance-tag {
-            background: rgba(255, 255, 255, 0.1);
-            padding: 4px 8px;
-            border-radius: 12px;
-            font-size: 0.75rem;
-        }
-        
-        .tooltip-stats {
+
+        .appliance-item {
             display: flex;
-            justify-content: space-between;
-            margin-top: 10px;
-            font-size: 0.85rem;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 8px;
+            background: #f8fafc;
+            border-radius: 8px;
+            font-size: 0.75rem;
+            text-align: left;
+        }
+
+        .appliance-item i {
+            font-size: 0.9rem;
+            min-width: 16px;
+        }
+
+        .appliance-item.high-priority {
+            background: #ecfdf5;
+            color: #047857;
+            border: 1px solid #86efac;
+        }
+
+        .appliance-item.medium-priority {
+            background: #fef3c7;
+            color: #92400e;
+            border: 1px solid #fde047;
+        }
+
+        .appliance-item.low-priority {
+            background: #f1f5f9;
+            color: #475569;
+            border: 1px solid #cbd5e1;
+        }
+
+        .appliance-item.warning-priority {
+            background: #fef2f2;
+            color: #991b1b;
+            border: 1px solid #fca5a5;
+            font-weight: 600;
+        }
+
+        .no-recommendations {
+            font-size: 0.75rem;
+            color: var(--gray);
+            font-style: italic;
         }
         
-        .tooltip-carbon {
-            color: var(--secondary);
-        }
-        
-        .tooltip-cost {
-            color: var(--accent);
-        }
-        
-        /* Chart Container */
         .chart-container {
             position: relative;
             height: 300px;
             width: 100%;
         }
         
-        /* Energy Mix */
         .energy-mix {
             display: flex;
             align-items: center;
@@ -421,7 +336,6 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            text-align: center;
         }
         
         .energy-icon {
@@ -448,7 +362,6 @@
         .energy-percent {
             font-size: 1.5rem;
             font-weight: 700;
-            margin: 5px 0;
         }
         
         .energy-label {
@@ -456,7 +369,6 @@
             color: var(--gray);
         }
         
-        /* Recommendations */
         .recommendations-list {
             display: flex;
             flex-direction: column;
@@ -472,7 +384,7 @@
             border-radius: 12px;
             transition: all 0.3s;
         }
-        
+
         .recommendation-item:hover {
             background: #f1f5f9;
             transform: translateX(5px);
@@ -494,7 +406,6 @@
         
         .rec-title {
             font-weight: 600;
-            margin-bottom: 4px;
         }
         
         .rec-desc {
@@ -508,12 +419,12 @@
             font-weight: 600;
         }
         
-        /* Actions */
         .actions {
             display: flex;
             gap: 12px;
             margin-top: 30px;
             justify-content: center;
+            flex-wrap: wrap;
         }
         
         .btn {
@@ -527,6 +438,11 @@
             transition: all 0.3s;
             border: none;
             font-size: 0.95rem;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--card-shadow-hover);
         }
         
         .btn-primary {
@@ -546,46 +462,12 @@
         
         .btn-secondary:hover {
             background: #f8fafc;
-            border-color: var(--gray);
         }
         
-        /* Responsive */
-        @media (max-width: 1200px) {
-            .dashboard-grid {
-                grid-template-columns: 1fr;
-            }
-            
-            .savings-grid {
-                grid-template-columns: repeat(2, 1fr);
-            }
-        }
-        
-        @media (max-width: 768px) {
-            header {
-                flex-direction: column;
-                gap: 20px;
-            }
-            
-            .header-stats {
-                width: 100%;
-                justify-content: space-between;
-            }
-            
-            .hourly-forecast {
-                grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-            }
-            
-            .savings-grid {
-                grid-template-columns: 1fr;
-            }
-        }
-        
-        /* Loading Animation */
         .loading {
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
             padding: 60px 20px;
         }
         
@@ -596,7 +478,6 @@
             border-top: 5px solid var(--primary);
             border-radius: 50%;
             animation: spin 1s linear infinite;
-            margin-bottom: 20px;
         }
         
         @keyframes spin {
@@ -604,7 +485,6 @@
             100% { transform: rotate(360deg); }
         }
         
-        /* Alert */
         .alert {
             padding: 16px 20px;
             border-radius: 10px;
@@ -624,6 +504,37 @@
             background: #eff6ff;
             color: #1e40af;
             border-left: 4px solid var(--primary);
+        }
+
+        .alert-success {
+            background: #f0fdf4;
+            color: #15803d;
+            border-left: 4px solid var(--secondary);
+        }
+
+        @media (max-width: 1024px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .savings-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .hourly-forecast {
+                grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            }
+        }
+
+        @media (max-width: 768px) {
+            .header-stats {
+                width: 100%;
+                justify-content: center;
+            }
+            
+            .savings-grid {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
@@ -696,16 +607,14 @@
                 <div class="card-header">
                     <div class="card-title">
                         <i class="fas fa-sun"></i>
-                        <span>24-Hour Solar Forecast</span>
+                        <span>24-Hour Solar Forecast with Appliances</span>
                     </div>
                 </div>
                 <div class="card-body">
-                    <div class="hourly-forecast-container">
-                        <div id="hourlyForecast" class="hourly-forecast">
-                            <div class="loading">
-                                <div class="spinner"></div>
-                                <p>Loading 24-hour solar predictions...</p>
-                            </div>
+                    <div id="hourlyForecast" class="hourly-forecast">
+                        <div class="loading">
+                            <div class="spinner"></div>
+                            <p>Loading sensor data...</p>
                         </div>
                     </div>
                 </div>
@@ -738,14 +647,14 @@
                             <div class="energy-icon solar-icon">
                                 <i class="fas fa-solar-panel"></i>
                             </div>
-                            <div class="energy-percent" id="solarPercent">65%</div>
+                            <div class="energy-percent" id="solarPercent">0%</div>
                             <div class="energy-label">Solar</div>
                         </div>
                         <div class="energy-source">
                             <div class="energy-icon grid-icon">
                                 <i class="fas fa-bolt"></i>
                             </div>
-                            <div class="energy-percent" id="gridPercent">35%</div>
+                            <div class="energy-percent" id="gridPercent">100%</div>
                             <div class="energy-label">Grid</div>
                         </div>
                     </div>
@@ -760,36 +669,10 @@
                     </div>
                 </div>
                 <div class="card-body">
-                    <div class="recommendations-list" id="recommendationsList">
-                        <div class="recommendation-item">
-                            <div class="rec-icon" style="background: #f0f9ff; color: #0369a1;">
-                                <i class="fas fa-car-battery"></i>
-                            </div>
-                            <div class="rec-content">
-                                <div class="rec-title">EV Charging</div>
-                                <div class="rec-desc">Charge your electric vehicle during peak solar hours</div>
-                            </div>
-                            <div class="rec-time">10:00-14:00</div>
-                        </div>
-                        <div class="recommendation-item">
-                            <div class="rec-icon" style="background: #f0fdf4; color: #15803d;">
-                                <i class="fas fa-wind"></i>
-                            </div>
-                            <div class="rec-content">
-                                <div class="rec-title">Run AC</div>
-                                <div class="rec-desc">Optimal time for air conditioning with solar power</div>
-                            </div>
-                            <div class="rec-time">11:00-15:00</div>
-                        </div>
-                        <div class="recommendation-item">
-                            <div class="rec-icon" style="background: #fefce8; color: #ca8a04;">
-                                <i class="fas fa-fire"></i>
-                            </div>
-                            <div class="rec-content">
-                                <div class="rec-title">Water Heating</div>
-                                <div class="rec-desc">Use solar power for water heating systems</div>
-                            </div>
-                            <div class="rec-time">09:00-13:00</div>
+                    <div id="aiRecommendations" class="recommendations-list">
+                        <div class="loading">
+                            <div class="spinner"></div>
+                            <p>Analyzing solar patterns...</p>
                         </div>
                     </div>
                 </div>
@@ -801,6 +684,10 @@
                 <i class="fas fa-sync-alt"></i>
                 Refresh Data
             </button>
+            <button class="btn btn-secondary" onclick="generateSimulatedData()">
+                <i class="fas fa-flask"></i>
+                Generate Test Data
+            </button>
             <button class="btn btn-secondary" onclick="exportSchedule()">
                 <i class="fas fa-download"></i>
                 Export Schedule
@@ -811,92 +698,285 @@
             <i class="fas fa-robot"></i>
             <div>
                 <strong>Powered by SolarAI</strong>
-                <p>Our AI algorithms analyze weather patterns, solar intensity, and energy consumption to optimize your energy usage and maximize savings.</p>
+                <p>Using real-time Arduino sensor data to optimize your energy usage. Includes recommendations for Water Pump, Fan, TV, and all major appliances.</p>
             </div>
         </div>
     </div>
 
     <script>
-        const API_BASE = 'http://localhost:5000';
-        
+        const API_BASE = 'http://10.129.142.245:5000';
         let energyChart = null;
-        let currentHourData = [];
+        let hourlyData = [];
 
-        // Generate 24-hour data with realistic patterns
-        function generate24HourData() {
-            const currentHour = new Date().getHours();
-            const data = [];
+        // Enhanced appliance recommendation engine with Water Pump, Fan, TV
+        function getApplianceRecommendations(hour, solarIntensity, energySource) {
+            const recommendations = [];
             
-            for (let i = 0; i < 24; i++) {
-                const hour = (currentHour + i) % 24;
-                const isCurrent = hour === currentHour;
-                
-                // Generate realistic solar intensity based on time of day
-                let solarIntensity, icon, recommendation, appliances, energySource;
-                let temperature = 18 + Math.floor(Math.random() * 15); // Base temp between 18-33°C
-                
-                if (hour >= 18 || hour < 6) {
-                    // Nighttime
-                    solarIntensity = 0;
-                    icon = '🌙';
-                    energySource = 'grid';
-                    recommendation = 'Essential loads only';
-                    appliances = ['💡 LED Lights', '📱 Phone Charging'];
-                    temperature = 18 + Math.floor(Math.random() * 5); // Cooler at night
-                } else if (hour >= 6 && hour < 9) {
-                    // Early morning
-                    solarIntensity = 10 + Math.floor(Math.random() * 20);
-                    icon = '🌤️';
-                    energySource = 'hybrid';
-                    recommendation = 'Light loads';
-                    appliances = ['💡 LED Lights', '❄️ Refrigerator'];
-                } else if (hour >= 9 && hour < 12) {
-                    // Late morning
-                    solarIntensity = 40 + Math.floor(Math.random() * 30);
-                    icon = '☀️';
-                    energySource = 'solar';
-                    recommendation = 'Medium loads';
-                    appliances = ['👕 Washing Machine', '📺 TV', '💻 Laptop'];
-                    temperature = 25 + Math.floor(Math.random() * 5); // Warmer
-                } else if (hour >= 12 && hour < 15) {
-                    // Afternoon peak
-                    solarIntensity = 70 + Math.floor(Math.random() * 25);
-                    icon = '🌟';
-                    energySource = 'solar';
-                    recommendation = 'Heavy loads';
-                    appliances = ['🚗 EV Charging', '🌡️ AC', '🔥 Water Heater'];
-                    temperature = 28 + Math.floor(Math.random() * 5); // Hottest
-                } else if (hour >= 15 && hour < 18) {
-                    // Late afternoon
-                    solarIntensity = 30 + Math.floor(Math.random() * 30);
-                    icon = '☀️';
-                    energySource = 'solar';
-                    recommendation = 'Medium loads';
-                    appliances = ['🍳 Oven', '🌀 Dryer', '📺 TV'];
-                    temperature = 25 + Math.floor(Math.random() * 5); // Cooling down
+            // HIGH SOLAR INTENSITY (50%+) - BEST TIME for high-power appliances
+            if (solarIntensity >= 50) {
+                // Water Pump - HIGHEST PRIORITY (essential utility)
+                if (hour >= 8 && hour <= 15) {
+                    recommendations.push({
+                        icon: 'fa-water',
+                        name: 'Water Pump',
+                        priority: 'high',
+                        type: 'recommended',
+                        power: '750W'
+                    });
                 }
                 
-                // Calculate derived values
-                const ldrReading = Math.round((solarIntensity / 100) * 1023);
-                const carbonSaved = (solarIntensity / 100) * (0.5 + Math.random() * 2);
-                const costSaved = (solarIntensity / 100) * (0.8 + Math.random() * 3);
+                // EV Charging - highest priority during peak sun
+                if (hour >= 10 && hour <= 14) {
+                    recommendations.push({
+                        icon: 'fa-car-battery',
+                        name: 'EV Charging',
+                        priority: 'high',
+                        type: 'recommended',
+                        power: '3kW'
+                    });
+                }
                 
-                data.push({
-                    hour,
-                    solarIntensity,
-                    temperature,
-                    ldrReading,
-                    energySource,
-                    icon,
-                    recommendation,
-                    appliances,
-                    carbonSaved: parseFloat(carbonSaved.toFixed(2)),
-                    costSaved: parseFloat(costSaved.toFixed(2)),
-                    isCurrent
+                // AC/Cooling - run during hottest hours with solar
+                if (hour >= 11 && hour <= 15) {
+                    recommendations.push({
+                        icon: 'fa-wind',
+                        name: 'AC/Cooling',
+                        priority: 'high',
+                        type: 'recommended',
+                        power: '1.5kW'
+                    });
+                }
+                
+                // Water Heater
+                if (hour >= 9 && hour <= 13) {
+                    recommendations.push({
+                        icon: 'fa-fire',
+                        name: 'Water Heater',
+                        priority: 'high',
+                        type: 'recommended',
+                        power: '2kW'
+                    });
+                }
+                
+                // Washing Machine
+                if (hour >= 9 && hour <= 14) {
+                    recommendations.push({
+                        icon: 'fa-tshirt',
+                        name: 'Washing',
+                        priority: 'medium',
+                        type: 'recommended',
+                        power: '500W'
+                    });
+                }
+                
+                // Dishwasher
+                if (hour >= 10 && hour <= 13) {
+                    recommendations.push({
+                        icon: 'fa-utensils',
+                        name: 'Dishwasher',
+                        priority: 'medium',
+                        type: 'recommended',
+                        power: '1.2kW'
+                    });
+                }
+                
+                // Fan - Good for moderate solar
+                if (hour >= 9 && hour <= 16) {
+                    recommendations.push({
+                        icon: 'fa-fan',
+                        name: 'Fan',
+                        priority: 'medium',
+                        type: 'recommended',
+                        power: '75W'
+                    });
+                }
+            }
+            // MEDIUM SOLAR (15-50%) - Light/medium appliances
+            else if (solarIntensity >= 15) {
+                // Fan - perfect for medium solar
+                if (hour >= 8 && hour <= 18) {
+                    recommendations.push({
+                        icon: 'fa-fan',
+                        name: 'Fan',
+                        priority: 'high',
+                        type: 'recommended',
+                        power: '75W'
+                    });
+                }
+                
+                // TV - entertainment during solar hours
+                if (hour >= 9 && hour <= 17) {
+                    recommendations.push({
+                        icon: 'fa-tv',
+                        name: 'TV',
+                        priority: 'medium',
+                        type: 'caution',
+                        power: '100W'
+                    });
+                }
+                
+                // Light usage
+                if (hour >= 8 && hour <= 17) {
+                    recommendations.push({
+                        icon: 'fa-lightbulb',
+                        name: 'Lights',
+                        priority: 'medium',
+                        type: 'caution',
+                        power: '60W'
+                    });
+                }
+                
+                // Water Pump - can still run but not optimal
+                if (hour >= 8 && hour <= 16) {
+                    recommendations.push({
+                        icon: 'fa-water',
+                        name: 'Water Pump',
+                        priority: 'medium',
+                        type: 'caution',
+                        power: '750W'
+                    });
+                }
+            }
+            // LOW/NO SOLAR (<15%) - AVOID HIGH-POWER - Show warnings
+            else {
+                // During grid hours, show what to AVOID
+                recommendations.push({
+                    icon: 'fa-exclamation-triangle',
+                    name: 'Avoid Heavy Loads',
+                    priority: 'warning',
+                    type: 'avoid'
                 });
+                
+                // TV - OK during evening/night (low power)
+                if (hour >= 18 && hour <= 23) {
+                    recommendations.push({
+                        icon: 'fa-tv',
+                        name: 'TV OK',
+                        priority: 'low',
+                        type: 'essential',
+                        power: '100W'
+                    });
+                }
+                
+                // Fan - OK anytime (low power)
+                recommendations.push({
+                    icon: 'fa-fan',
+                    name: 'Fan OK',
+                    priority: 'low',
+                    type: 'essential',
+                    power: '75W'
+                });
+                
+                // Only essential items during grid hours
+                if (hour >= 6 && hour <= 8) {
+                    recommendations.push({
+                        icon: 'fa-coffee',
+                        name: 'Essential Only',
+                        priority: 'low',
+                        type: 'essential'
+                    });
+                }
             }
             
-            return data;
+            return recommendations;
+        }
+
+        // Generate AI recommendations summary from hourly data
+        function generateAIRecommendations(hourlyData) {
+            const recommendations = new Map();
+            
+            // Define appliance types we track - EXPANDED with Water Pump, Fan, TV
+            const applianceTypes = {
+                'Water Pump': { icon: 'fa-water', color: '#dbeafe', iconColor: '#1e40af', desc: 'Fill tanks during peak solar hours', power: '750W' },
+                'EV Charging': { icon: 'fa-car-battery', color: '#f0f9ff', iconColor: '#0369a1', desc: 'Charge during peak solar hours', power: '3kW' },
+                'AC/Cooling': { icon: 'fa-wind', color: '#f0fdf4', iconColor: '#15803d', desc: 'Optimal time with solar power', power: '1.5kW' },
+                'Water Heater': { icon: 'fa-fire', color: '#fefce8', iconColor: '#ca8a04', desc: 'Use solar for water heating', power: '2kW' },
+                'Washing': { icon: 'fa-tshirt', color: '#ede9fe', iconColor: '#7c3aed', desc: 'Best time for laundry', power: '500W' },
+                'Dishwasher': { icon: 'fa-utensils', color: '#fef3c7', iconColor: '#d97706', desc: 'Run during solar hours', power: '1.2kW' },
+                'Fan': { icon: 'fa-fan', color: '#e0f2fe', iconColor: '#0284c7', desc: 'Energy-efficient cooling', power: '75W' },
+                'TV': { icon: 'fa-tv', color: '#fce7f3', iconColor: '#be185d', desc: 'Entertainment during solar hours', power: '100W' }
+            };
+            
+            // Scan through hourly data to find best times for each appliance
+            hourlyData.forEach(hour => {
+                const hourAppliances = getApplianceRecommendations(hour.hour, hour.solarIntensity, hour.energySource);
+                
+                hourAppliances.forEach(app => {
+                    // Only track high-priority recommended appliances
+                    if (app.type === 'recommended' && (app.priority === 'high' || app.priority === 'medium')) {
+                        if (!recommendations.has(app.name)) {
+                            recommendations.set(app.name, {
+                                name: app.name,
+                                hours: [],
+                                avgSolar: 0,
+                                totalSolar: 0,
+                                count: 0
+                            });
+                        }
+                        
+                        const rec = recommendations.get(app.name);
+                        rec.hours.push(hour.hour);
+                        rec.totalSolar += hour.solarIntensity;
+                        rec.count++;
+                        rec.avgSolar = Math.round(rec.totalSolar / rec.count);
+                    }
+                });
+            });
+            
+            // Convert to array and sort by best solar availability
+            const recArray = Array.from(recommendations.values())
+                .sort((a, b) => b.avgSolar - a.avgSolar)
+                .slice(0, 6); // Top 6 recommendations
+            
+            // Generate time ranges for each appliance
+            recArray.forEach(rec => {
+                if (rec.hours.length > 0) {
+                    rec.hours.sort((a, b) => a - b);
+                    const startHour = rec.hours[0];
+                    const endHour = rec.hours[rec.hours.length - 1];
+                    rec.timeRange = `${String(startHour).padStart(2, '0')}:00-${String(endHour + 1).padStart(2, '0')}:00`;
+                    rec.applianceInfo = applianceTypes[rec.name] || {
+                        icon: 'fa-plug',
+                        color: '#f3f4f6',
+                        iconColor: '#6b7280',
+                        desc: 'Use during solar hours',
+                        power: 'Variable'
+                    };
+                }
+            });
+            
+            return recArray;
+        }
+
+        // Display AI recommendations
+        function displayAIRecommendations(hourlyData) {
+            const container = document.getElementById('aiRecommendations');
+            const recommendations = generateAIRecommendations(hourlyData);
+            
+            if (recommendations.length === 0) {
+                container.innerHTML = '<div class="no-recommendations">No high-solar hours available today. Monitor forecast for better conditions.</div>';
+                return;
+            }
+            
+            container.innerHTML = '';
+            
+            recommendations.forEach(rec => {
+                const item = document.createElement('div');
+                item.className = 'recommendation-item';
+                
+                item.innerHTML = `
+                    <div class="rec-icon" style="background: ${rec.applianceInfo.color}; color: ${rec.applianceInfo.iconColor};">
+                        <i class="fas ${rec.applianceInfo.icon}"></i>
+                    </div>
+                    <div class="rec-content">
+                        <div class="rec-title">${rec.name} <span style="font-size: 0.8rem; color: var(--gray); font-weight: 400;">(${rec.applianceInfo.power})</span></div>
+                        <div class="rec-desc">${rec.applianceInfo.desc} • Avg: ${rec.avgSolar}% solar</div>
+                    </div>
+                    <div class="rec-time">${rec.timeRange}</div>
+                `;
+                
+                container.appendChild(item);
+            });
         }
 
         function updateClock() {
@@ -905,6 +985,26 @@
         }
         setInterval(updateClock, 1000);
         updateClock();
+
+        async function fetchWeatherFromBackend() {
+            try {
+                const res = await fetch(`${API_BASE}/api/weather`);
+                if (!res.ok) {
+                    console.warn('Weather API not available, using default temperature');
+                    return 25;
+                }
+                const contentType = res.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    console.warn('Weather API returned non-JSON response');
+                    return 25;
+                }
+                const data = await res.json();
+                return data.temp !== undefined ? Number(data.temp) : 25;
+            } catch (e) {
+                console.error('Weather fetch error:', e);
+                return 25;
+            }
+        }
 
         function getSourceClass(source) {
             if (source === 'solar') return 'source-solar';
@@ -920,114 +1020,87 @@
 
         function displayHourlyForecast(data) {
             const container = document.getElementById('hourlyForecast');
-            
             container.innerHTML = '';
             
             data.forEach(hour => {
                 const sourceClass = getSourceClass(hour.energySource);
                 const sourceLabel = getSourceLabel(hour.energySource);
                 
+                // Get appliance recommendations for this hour
+                const appliances = getApplianceRecommendations(hour.hour, hour.solarIntensity, hour.energySource);
+                
                 const card = document.createElement('div');
                 card.className = `hour-card ${hour.isCurrent ? 'current' : ''}`;
+                
+                // Arduino badge
+                const arduinoBadge = hour.isArduinoData ? 
+                    '<div style="background: #10b981; color: white; font-size: 0.65rem; padding: 2px 6px; border-radius: 10px; display: inline-block; margin-top: 4px;">⚡ Live</div>' : '';
+                
+                const humidityInfo = hour.humidity ? 
+                    `<div style="font-size: 0.8rem; color: #64748b; margin: 4px 0;">${Math.round(hour.humidity)}% humidity</div>` : '';
+                
+                // Build appliances list HTML
+                let appliancesHTML = '';
+                if (appliances.length > 0) {
+                    appliancesHTML = '<div class="hour-appliances">';
+                    appliances.forEach(app => {
+                        const priorityClass = app.type === 'avoid' ? 'warning' : app.priority;
+                        appliancesHTML += `
+                            <div class="appliance-item ${priorityClass}-priority">
+                                <i class="fas ${app.icon}"></i>
+                                <span>${app.name}</span>
+                            </div>
+                        `;
+                    });
+                    appliancesHTML += '</div>';
+                }
                 
                 card.innerHTML = `
                     <div class="hour-time">${String(hour.hour).padStart(2, '0')}:00</div>
                     <div class="hour-icon">${hour.icon}</div>
-                    <div class="hour-temp">${hour.temperature}°C</div>
+                    <div class="hour-temp">${Math.round(hour.temperature)}°C</div>
+                    ${humidityInfo}
                     <div class="hour-solar">${hour.solarIntensity}%</div>
-                    <div class="appliance-tags">
-                        ${hour.appliances.map(app => `<span class="appliance-tag">${app}</span>`).join('')}
-                    </div>
-                    <div class="hour-stats">
-                        <div class="carbon-stat">Carbon: ${hour.carbonSaved} kg</div>
-                        <div class="cost-stat">Saved: ₹${hour.costSaved}</div>
-                    </div>
                     <div class="hour-source ${sourceClass}">${sourceLabel}</div>
+                    ${arduinoBadge}
+                    ${appliancesHTML}
                 `;
-                
-                // Create and position tooltip dynamically
-                const tooltip = document.createElement('div');
-                tooltip.className = 'hour-tooltip';
-                tooltip.innerHTML = `
-                    <div class="tooltip-title">${hour.recommendation}</div>
-                    <div class="tooltip-details">Solar intensity: ${hour.solarIntensity}% (LDR: ${hour.ldrReading})</div>
-                    <div class="tooltip-appliances">
-                        ${hour.appliances.map(app => `<span class="tooltip-appliance-tag">${app}</span>`).join('')}
-                    </div>
-                    <div class="tooltip-stats">
-                        <div class="tooltip-carbon">Carbon Saved: ${hour.carbonSaved} kg</div>
-                        <div class="tooltip-cost">Cost Saved: ₹${hour.costSaved}</div>
-                    </div>
-                `;
-                
-                document.body.appendChild(tooltip);
-                
-                // Add event listeners for tooltip positioning
-                card.addEventListener('mouseenter', function(e) {
-                    const rect = card.getBoundingClientRect();
-                    
-                    // Position tooltip above the card with some offset
-                    let top = rect.top - tooltip.offsetHeight - 10;
-                    let left = rect.left + (rect.width / 2) - (tooltip.offsetWidth / 2);
-                    
-                    // Ensure tooltip doesn't go off screen
-                    if (top < 10) {
-                        top = rect.bottom + 10; // Show below if not enough space above
-                    }
-                    
-                    if (left < 10) {
-                        left = 10;
-                    } else if (left + tooltip.offsetWidth > window.innerWidth - 10) {
-                        left = window.innerWidth - tooltip.offsetWidth - 10;
-                    }
-                    
-                    tooltip.style.top = `${top}px`;
-                    tooltip.style.left = `${left}px`;
-                    tooltip.style.opacity = '1';
-                    tooltip.style.visibility = 'visible';
-                });
-                
-                card.addEventListener('mouseleave', function() {
-                    tooltip.style.opacity = '0';
-                    tooltip.style.visibility = 'hidden';
-                });
                 
                 container.appendChild(card);
             });
         }
 
-        function updateEnergyChart() {
+        function updateEnergyChart(hourlyData) {
             const ctx = document.getElementById('energyChart').getContext('2d');
             
             if (energyChart) energyChart.destroy();
             
-            // Sample data for the chart
-            const labels = [];
-            const solarData = [];
-            const consumptionData = [];
+            const labels = hourlyData.map(h => `${String(h.hour).padStart(2, '0')}:00`);
+            const solarData = hourlyData.map(h => h.solarIntensity);
             
-            // Generate 24-hour chart data
-            for (let i = 0; i < 24; i++) {
-                labels.push(`${String(i).padStart(2, '0')}:00`);
+            // REALISTIC ENERGY CONSUMPTION PATTERN
+            const consumptionData = hourlyData.map(h => {
+                const hour = h.hour;
+                let baseConsumption;
                 
-                // Generate realistic solar and consumption patterns
-                if (i >= 18 || i < 6) {
-                    solarData.push(0);
-                    consumptionData.push(15 + Math.floor(Math.random() * 10));
-                } else if (i >= 6 && i < 9) {
-                    solarData.push(15 + Math.floor(Math.random() * 20));
-                    consumptionData.push(25 + Math.floor(Math.random() * 15));
-                } else if (i >= 9 && i < 12) {
-                    solarData.push(45 + Math.floor(Math.random() * 25));
-                    consumptionData.push(40 + Math.floor(Math.random() * 20));
-                } else if (i >= 12 && i < 15) {
-                    solarData.push(75 + Math.floor(Math.random() * 20));
-                    consumptionData.push(80 + Math.floor(Math.random() * 15));
-                } else if (i >= 15 && i < 18) {
-                    solarData.push(40 + Math.floor(Math.random() * 25));
-                    consumptionData.push(55 + Math.floor(Math.random() * 20));
+                if (hour >= 23 || hour < 6) {
+                    baseConsumption = 10 + Math.random() * 8; // 10-18%
                 }
-            }
+                else if (hour >= 6 && hour < 9) {
+                    baseConsumption = 45 + Math.random() * 15; // 45-60%
+                }
+                else if (hour >= 9 && hour < 17) {
+                    baseConsumption = 25 + Math.random() * 15; // 25-40%
+                }
+                else if (hour >= 17 && hour < 22) {
+                    baseConsumption = 55 + Math.random() * 20; // 55-75%
+                }
+                else {
+                    baseConsumption = 30 + Math.random() * 15; // 30-45%
+                }
+                
+                return Math.round(baseConsumption);
+            });
             
             energyChart = new Chart(ctx, {
                 type: 'line',
@@ -1040,7 +1113,8 @@
                             borderColor: '#f59e0b',
                             backgroundColor: 'rgba(245, 158, 11, 0.1)',
                             tension: 0.4,
-                            fill: true
+                            fill: true,
+                            borderWidth: 3
                         },
                         {
                             label: 'Energy Consumption',
@@ -1048,7 +1122,8 @@
                             borderColor: '#3b82f6',
                             backgroundColor: 'rgba(59, 130, 246, 0.1)',
                             tension: 0.4,
-                            fill: true
+                            fill: true,
+                            borderWidth: 3
                         }
                     ]
                 },
@@ -1058,14 +1133,33 @@
                     plugins: {
                         legend: {
                             position: 'top',
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return context.dataset.label + ': ' + context.parsed.y.toFixed(1) + '%';
+                                }
+                            }
                         }
                     },
                     scales: {
                         y: {
                             beginAtZero: true,
+                            max: 100,
                             title: {
                                 display: true,
-                                text: 'Percentage'
+                                text: 'Percentage (%)'
+                            },
+                            ticks: {
+                                callback: function(value) {
+                                    return value + '%';
+                                }
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Time of Day'
                             }
                         }
                     }
@@ -1073,64 +1167,240 @@
             });
         }
 
-        function refreshAllData() {
-            console.log('Refreshing data...');
-            // Generate 24 hours of data
-            const hourlyData = generate24HourData();
-            displayHourlyForecast(hourlyData);
-            updateEnergyChart();
+        async function refreshAllData() {
+            console.log('=== Refreshing Dashboard Data ===');
             
-            // Calculate totals from hourly data
-            let totalCost = 0;
-            let totalCarbon = 0;
-            
-            hourlyData.forEach(hour => {
-                totalCost += hour.costSaved;
-                totalCarbon += hour.carbonSaved;
-            });
-            
-            // Update savings
-            document.getElementById('todayCost').textContent = `₹${totalCost.toFixed(2)}`;
-            document.getElementById('todayCarbon').textContent = totalCarbon.toFixed(1);
-            document.getElementById('weekCost').textContent = `₹${(totalCost * 7).toFixed(2)}`;
-            document.getElementById('monthCost').textContent = `₹${(totalCost * 30).toFixed(2)}`;
-            
-            // Calculate solar percentage
-            const solarHours = hourlyData.filter(hour => hour.energySource === 'solar').length;
-            const solarPercent = Math.round((solarHours / 24) * 100);
-            
-            // Update energy mix
-            document.getElementById('solarPercent').textContent = `${solarPercent}%`;
-            document.getElementById('gridPercent').textContent = `${100 - solarPercent}%`;
-            
-            // Update status
-            document.getElementById('aiStatus').textContent = 'Active';
-            document.getElementById('dataPoints').textContent = '1,247';
-            
-            // Set current temperature
-            const currentHourData = hourlyData.find(hour => hour.isCurrent);
-            if (currentHourData) {
-                document.getElementById('temperature').textContent = `${currentHourData.temperature}°C`;
+            try {
+                let temperature = await fetchWeatherFromBackend();
+                
+                console.log('Fetching recent Arduino data...');
+                let recentResponse = await fetch(`${API_BASE}/api/data/readings?deviceId=solar-monitor-001&limit=1`);
+                
+                const contentType = recentResponse.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    console.warn('API returned HTML instead of JSON. Check your backend server.');
+                    throw new Error('Backend API is not responding correctly. Please check if your server is running and configured properly.');
+                }
+                
+                let recentData = await recentResponse.json();
+                
+                if (recentData.readings && recentData.readings.length > 0) {
+                    const currentReading = recentData.readings[0];
+                    const currentSolar = Math.round((currentReading.ldr / 1023) * 100);
+                    const currentTemp = currentReading.temperature || temperature;
+                    
+                    document.getElementById('temperature').textContent = `${Math.round(currentTemp)}°C ⚡`;
+                    console.log(`✓ LIVE: LDR=${currentReading.ldr}, Solar=${currentSolar}%, Temp=${currentTemp}°C`);
+                }
+                
+                console.log('Fetching 24-hour Arduino data...');
+                let response = await fetch(`${API_BASE}/api/data/readings?deviceId=solar-monitor-001&limit=500`);
+                let data = await response.json();
+                
+                let dataSource = 'Arduino';
+                let useArduinoTemp = false;
+                
+                if (!data.readings || data.readings.length === 0) {
+                    console.log('No Arduino data found. Fetching all device data...');
+                    response = await fetch(`${API_BASE}/api/data/readings?hours=24&limit=500`);
+                    data = await response.json();
+                    dataSource = 'All Devices';
+                    
+                    if (!data.readings || data.readings.length === 0) {
+                        console.log('No sensor data found. Generating simulated data...');
+                        const simResponse = await fetch(`${API_BASE}/api/simulate?hours=24`);
+                        
+                        if (simResponse.ok) {
+                            await new Promise(resolve => setTimeout(resolve, 1000));
+                            return refreshAllData();
+                        } else {
+                            throw new Error('No sensor data available.');
+                        }
+                    }
+                } else {
+                    const latestReading = data.readings[0];
+                    if (latestReading && latestReading.temperature) {
+                        temperature = latestReading.temperature;
+                        useArduinoTemp = true;
+                    }
+                }
+                
+                console.log(`Using data from: ${dataSource} (${data.readings.length} readings)`);
+                if (useArduinoTemp) {
+                    console.log('✓ Using real Arduino temperature!');
+                }
+                
+                const currentHour = new Date().getHours();
+                hourlyData = [];
+                const hourlyMap = new Map();
+                
+                data.readings.forEach(reading => {
+                    const hour = new Date(reading.timestamp * 1000).getHours();
+                    if (!hourlyMap.has(hour)) {
+                        hourlyMap.set(hour, []);
+                    }
+                    hourlyMap.get(hour).push(reading);
+                });
+                
+                for (let i = 0; i < 24; i++) {
+                    const hour = (currentHour + i) % 24;
+                    const readings = hourlyMap.get(hour) || [];
+                    
+                    let avgLdr, actualTemp, actualHumidity, isArduinoData;
+                    
+                    if (readings.length > 0) {
+                        const ldrValues = readings.map(r => r.ldr).filter(v => v !== null && v !== undefined);
+                        avgLdr = ldrValues.length > 0 
+                            ? Math.round(ldrValues.reduce((a, b) => a + b, 0) / ldrValues.length)
+                            : 0;
+                        
+                        const arduinoReading = readings.find(r => r.deviceId === 'solar-monitor-001');
+                        if (arduinoReading) {
+                            if (arduinoReading.temperature) {
+                                actualTemp = arduinoReading.temperature;
+                                actualHumidity = arduinoReading.humidity;
+                            }
+                            isArduinoData = true;
+                        }
+                    } else {
+                        if (hour >= 6 && hour <= 18) {
+                            const hoursFromNoon = Math.abs(12 - hour);
+                            avgLdr = Math.max(0, 700 - (hoursFromNoon * 80));
+                        } else {
+                            avgLdr = 20;
+                        }
+                    }
+                    
+                    const solarIntensity = Math.round((avgLdr / 1023) * 100) || 0;
+                    
+                    // Override unrealistic solar values based on time of day
+                    let correctedSolarIntensity = solarIntensity;
+                    
+                    if (hour >= 22 || hour < 6) {
+                        correctedSolarIntensity = Math.min(solarIntensity, 5);
+                    }
+                    else if (hour >= 6 && hour < 7) {
+                        correctedSolarIntensity = Math.min(solarIntensity, 15);
+                    }
+                    else if (hour >= 18 && hour < 22) {
+                        correctedSolarIntensity = Math.min(solarIntensity, 20);
+                    }
+                    
+                    const finalSolarIntensity = correctedSolarIntensity;
+                    
+                    let temp = actualTemp || temperature || 25;
+                    if (!actualTemp) {
+                        if (hour >= 18 || hour < 6) {
+                            temp = Math.round(temp - 2);
+                        } else if (hour >= 12 && hour < 15) {
+                            temp = Math.round(temp + 2);
+                        }
+                    }
+                    
+                    let energySource, icon;
+                    if (finalSolarIntensity >= 50) {
+                        energySource = 'solar';
+                        icon = '☀️';
+                    } else if (finalSolarIntensity >= 15) {
+                        energySource = 'hybrid';
+                        icon = '⛅';
+                    } else if (finalSolarIntensity >= 5) {
+                        energySource = 'grid';
+                        icon = '🌤️';
+                    } else {
+                        energySource = 'grid';
+                        icon = '🌙';
+                    }
+                    
+                    hourlyData.push({
+                        hour,
+                        solarIntensity: finalSolarIntensity,
+                        temperature: temp,
+                        humidity: actualHumidity,
+                        energySource,
+                        icon,
+                        carbonSaved: parseFloat(((finalSolarIntensity / 100) * 1.2).toFixed(2)),
+                        costSaved: parseFloat(((finalSolarIntensity / 100) * 2.0).toFixed(2)),
+                        isCurrent: hour === currentHour,
+                        isArduinoData: isArduinoData || false
+                    });
+                }
+                
+                displayHourlyForecast(hourlyData);
+                updateEnergyChart(hourlyData);
+                displayAIRecommendations(hourlyData);
+                
+                const totalCost = hourlyData.reduce((sum, h) => sum + (h.costSaved || 0), 0);
+                const totalCarbon = hourlyData.reduce((sum, h) => sum + (h.carbonSaved || 0), 0);
+                
+                document.getElementById('todayCost').textContent = `₹${totalCost.toFixed(2)}`;
+                document.getElementById('todayCarbon').textContent = totalCarbon.toFixed(1);
+                document.getElementById('weekCost').textContent = `₹${(totalCost * 7).toFixed(2)}`;
+                document.getElementById('monthCost').textContent = `₹${(totalCost * 30).toFixed(2)}`;
+                
+                const solarHours = hourlyData.filter(h => h.energySource === 'solar').length;
+                const solarPercent = Math.round((solarHours / 24) * 100);
+                document.getElementById('solarPercent').textContent = `${solarPercent}%`;
+                document.getElementById('gridPercent').textContent = `${100 - solarPercent}%`;
+                
+                document.getElementById('dataPoints').textContent = data.readings.length;
+                document.getElementById('aiStatus').textContent = dataSource === 'Arduino' ? '⚡ Live' : 'Active';
+                document.getElementById('errorAlert').style.display = 'none';
+                
+                console.log('=== Dashboard Update Complete ===');
+                
+            } catch (error) {
+                console.error('Dashboard refresh error:', error);
+                document.getElementById('errorAlert').style.display = 'block';
+                document.getElementById('errorMessage').textContent = error.message;
+            }
+        }
+
+        async function generateSimulatedData() {
+            try {
+                console.log('Generating simulated data...');
+                const response = await fetch(`${API_BASE}/api/simulate?hours=24`);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    alert(`Successfully generated ${data.data_points} hours of test data!`);
+                    await refreshAllData();
+                } else {
+                    alert('Failed to generate test data.');
+                }
+            } catch (error) {
+                console.error('Error generating simulated data:', error);
+                alert('Error: ' + error.message);
             }
         }
 
         function exportSchedule() {
-            alert('24-hour schedule exported successfully!');
+            // Create CSV content with appliance recommendations
+            let csv = 'Hour,Solar Intensity,Temperature,Energy Source,Recommended Appliances,Power Ratings\n';
+            
+            hourlyData.forEach(hour => {
+                const appliances = getApplianceRecommendations(hour.hour, hour.solarIntensity, hour.energySource);
+                const applianceNames = appliances.map(a => a.name).join('; ');
+                const powerRatings = appliances.map(a => a.power || 'N/A').join('; ');
+                csv += `${String(hour.hour).padStart(2, '0')}:00,${hour.solarIntensity}%,${hour.temperature}°C,${hour.energySource},"${applianceNames}","${powerRatings}"\n`;
+            });
+            
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `solar-schedule-${new Date().toISOString().split('T')[0]}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+            
+            alert('24-hour schedule with all appliance recommendations exported successfully!');
         }
 
-        // Clean up tooltips when leaving the page
-        window.addEventListener('beforeunload', function() {
-            document.querySelectorAll('.hour-tooltip').forEach(tooltip => {
-                tooltip.remove();
-            });
-        });
-
-        // Initialize the dashboard
         window.onload = function() {
             console.log('Initializing SolarAI Dashboard...');
             refreshAllData();
-            
-            // Set up periodic refresh
             setInterval(refreshAllData, 300000); // Refresh every 5 minutes
         };
     </script>
